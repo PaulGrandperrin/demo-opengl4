@@ -52,6 +52,7 @@ public:
     
     uint createProgram(string path);
     void addShaderToProgram(uint shader, uint program);
+    void linkProgram(uint program);
     void deleteProgram(uint id);
 
     uint createPiece(string path);
@@ -62,7 +63,7 @@ public:
 
     uint createObject(string path);
     void addPieceToObject(uint piece, uint object);
-    void addObjectToObject(uint object, uint object);
+    void addObjectToObject(uint componant, uint composite);
     void deleteObject(uint id);
 
     /**
@@ -73,7 +74,12 @@ public:
 
     
 private:
-    uint nextID;
+    uint lastID;
+    
+    uint getNextID()
+    {
+      return ++lastID;
+    }
 
     /** Filesystem level resources
      *
@@ -157,3 +163,4 @@ private:
     map<ino_t,uint> loadedResources;
     
 };
+

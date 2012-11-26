@@ -20,7 +20,7 @@ int main(int argc, char* argv[], char* env[])
     glfwSetWindowTitle("OpenGL Demo");
 
     GE.init(1280,800);
-    return GE.loadMesh("",argv[1]);
+    GE.loadMesh("test",argv[1]);
     while( running )
     {
         GE.render();

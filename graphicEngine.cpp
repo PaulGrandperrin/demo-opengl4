@@ -14,18 +14,21 @@ using namespace std;
 
 void GraphicEngine::init(uint width, uint height)
 {
-
+    lastID=0;
+    
     glViewport (0, 0, width, height);
     glClearColor(0, 0, 0, 0);
-    glClear(GL_COLOR_BUFFER_BIT);
 }
 
 
 void GraphicEngine::render()
 {
-
+    glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+    glEnable(GL_DEPTH_TEST);
+    
     
 }
+
 
 uint GraphicEngine::loadMesh(string path, string fileName)
 {
@@ -198,21 +201,135 @@ uint GraphicEngine::loadMesh(string path, string fileName)
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     
     
-    //TODO save mesh info
-    
     free(vertexArray);
     free(indexArray);
 
     cout << "vertexCount: " << vertices.size() << endl;
     cout << "triangleCount: " << triangles.size() << endl;
 
-
-    // Save infos
-
     // Get file inode number
     struct stat sb;
-    stat(fileName.c_str(),&sb);
-    cout << sb.st_ino <<endl ;
+    stat(fileName.c_str(), &sb);
+    cout << sb.st_ino << endl;
     
-    return 1;
+    // TODO save inode
+    
+    mesh m;
+    m.IBO=IBO;
+    m.VBO=VBO;
+    m.memorySize=vertices.size() * (3 + 3 + 2) + triangles.size() * 3;
+    m.backrefs=0;
+    m.name=path;
+    
+    uint ID=getNextID();
+    
+    this->meshs.insert(pair<uint,mesh>(ID,m));
+    
+    return ID;
 }
+
+uint GraphicEngine::loadShader(string path, string fileName, GLenum type)
+{
+  	GLuint shader;
+	GLsizei logsize;
+	GLint compile_status = GL_TRUE;
+	char *log;
+
+	shader = glCreateShader(type);
+
+	ifstream file(fileName,ios::in);
+	string src,line;
+	
+	while(getline(file,line))
+		src+="\n"+line; //TODO replace "\n" by endl
+	
+	file.close();
+
+	const char* strchar=src.c_str();
+	glShaderSource(shader, 1, (const GLchar**) &(strchar), NULL);
+	glCompileShader(shader);
+
+	glGetShaderiv(shader, GL_COMPILE_STATUS, &compile_status);
+	if (compile_status != GL_TRUE)
+	{
+		glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logsize);
+
+		log = (char*)malloc(logsize + 1);
+
+		glGetShaderInfoLog(shader, logsize, &logsize, log);
+		cout << endl << "Error compiling " << fileName << " :" <<endl << log << endl;
+
+		free (log);
+		glDeleteShader(shader);
+
+		return 0;
+	}
+
+	GraphicEngine::shader s;
+	uint ID=getNextID();
+	s.id = shader;
+	s.type = type;
+	s.memorySize=0;
+	s.backrefs=0;
+	s.name=path;
+	
+	this->shaders.insert(pair<uint,GraphicEngine::shader>(ID,s));
+	
+	return ID;
+}
+
+
+uint GraphicEngine::createProgram(string path)
+{
+    uint ID=getNextID();
+    program p;
+    p.id=glCreateProgram();
+    p.backrefs=0;
+    p.name=path;
+    
+    this->programs.insert(pair<uint,program>(ID,p));
+    return ID;
+}
+
+
+void GraphicEngine::addShaderToProgram(uint shader, uint program)
+{
+	GLuint p, s;
+	
+	p = this->programs[program].id;
+	s = this->shaders[shader].id;
+	
+	glAttachShader(p, s);
+	
+	//TODO garbage collection ?
+}
+	
+void GraphicEngine::linkProgram(uint program)
+{
+	GLuint p;
+	p = this->programs[program].id;
+	
+	glLinkProgram(p);
+
+	
+	GLint link_status = GL_TRUE;
+	GLint logsize=200;
+	char* log;
+	
+	glGetProgramiv(p, GL_LINK_STATUS, &link_status);
+	if(link_status != GL_TRUE)
+	{
+		glGetProgramiv(p, GL_INFO_LOG_LENGTH, &logsize);
+		log = (char*)malloc(logsize + 1);
+
+		glGetProgramInfoLog(p, logsize, &logsize, log);
+
+		cout << endl<< "Error while linking:"<< endl << log << endl;
+
+		free ( log );
+		glDeleteProgram (p);
+		exit(-1);
+	}
+
+}
+
