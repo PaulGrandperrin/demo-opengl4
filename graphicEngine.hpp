@@ -45,6 +45,71 @@ using namespace std;
  *      texture compression
  *      indexed triangles stripping with primitive restart
  *      Frustrum culling with octree and mesh bunding and occlusion queries
+ * 
+ * 
+ * 	VA
+ * 	VBO
+ * 	IBO
+ * 	VAO
+ * 	FBO
+ * 	TBO //nan
+ * 	UBO
+ * 	PBO
+ * 	
+ * 
+ * 	change GLEW
+ * 	choose devil
+ * 
+ * 	Others:
+ * 	GL_NV_texture_barrier
+ * 	GL_EXT_direct_state_access
+ *	GL_NVX_gpu_memory_info
+ *	GL_ATI_meminfo
+ * 
+ * 	OpenGL 3.0
+ * 	ARB_uniform_buffer_object
+ * 	ARB_texture_buffer_object
+ * 
+ * 	OpenGL 3.1
+ * 	ARB_bindable_uniform_buffer_object
+ * 
+ * 	OpenGL 3.2
+ * 	ARB_sync
+ * 	ARB_texture_query_lod
+ * 	ARB_texture_gather
+ * 	ARB_texture_cube_map_array
+ * 	ARB_texture_seamless_cube_map
+ * 
+ * 	OpenGL 3.3:
+ * 	ARB_explicit_attrib_location YES
+ * 	ARB_sampler_objects
+ * 	ARB_texture_swizzle
+ * 	ARB_timer_query
+ * 	ARB_vertex_type_2_10_10_10_rev
+ * 
+ * 
+ * 	OpenGL 4.0
+ * 	ARB_shader_subroutine
+ * 	ARB_texture_buffer_object_rgb32
+ * 	ARB_transform_feedback2
+ * 	ARB_draw_indirect
+ * 	ARB_tessellation_shader
+ * 
+ * 	OpenGL 4.1
+ * 	ARB_separate_shader_objects
+ * 	ARB_debug_output
+ * 	
+ * 
+ * 	OpenGL 4.2
+ * 	ARB_shading_language_420pack
+ * 	ARB_map_buffer_alignment
+ * 
+ * 	OpenGL 4.3
+ * 	ARB_vertex_attrib_binding
+ * 	KHR_debug
+ * 	ARB_program_interface_query
+ * 	ARB_explicit_uniform_location YES
+ * 	
  */
 
 class GraphicEngine
@@ -54,7 +119,7 @@ public:
 
     void init(uint width,uint height);
     void resize(uint width,uint height);
-    void render(uint mesh, uint program);
+    void render(uint m, uint p, uint t);
 
     // FS Resource loaders
     
@@ -191,7 +256,7 @@ private:
     struct texture : FSResource
     {
         GLuint id;
-        uint height, weight;
+        uint height, width;
         // TODO compression type
     };
     

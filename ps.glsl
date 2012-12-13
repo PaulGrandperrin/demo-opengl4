@@ -1,9 +1,9 @@
-#version 130
+#version 430 core
 precision highp float;
 smooth in vec3 normal;
-//smooth in vec2 texPos;
+smooth in vec2 texPos;
 //uniform vec3 lightDir,cameraDir;
-//uniform sampler2D textureMap;
+layout(binding = 0) uniform sampler2D textureMap;
 
 out vec4 fragColor;
 
@@ -11,7 +11,7 @@ void main()
 {
 	vec3 lightDir= vec3(1.0,1.0,0);
 	vec3 cameraDir = vec3(0,1.0,1.0);
-	vec4 color=vec4(normalize(normal),1.0); //texture(textureMap,texPos);
+	vec4 color=texture(textureMap,texPos); //vec4(normalize(normal),1.0)
 	vec3 normal=normalize(normal);
 
 	float al=0.2;

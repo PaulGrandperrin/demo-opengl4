@@ -10,11 +10,14 @@
 #include <fstream>
 #include <sstream>
 
+#include <IL/il.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
 
 using namespace std;
+
+
 
 GraphicEngine::GraphicEngine() : lastID(0), test(0)
 {}
@@ -26,10 +29,19 @@ void GraphicEngine::init(uint width, uint height)
    
     glewExperimental=GL_TRUE;
     
+    ilInit();
+    
     if(glewInit() != GLEW_OK)
       exit(17);
     
     glGetError(); // Get rid off the error bug of glewInit()
+    
+    /*
+    glEnable(GL_DEBUG_OUTPUT_ARB);
+    glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB);
+    glDebugMessageControlARB(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, GL_TRUE);
+    glDebugMessageCallbackARB(&debugOutput, NULL);
+    */
     
     GLC(glViewport (0, 0, width, height));
     GLC(glClearColor(1, 0, 0, 1));
@@ -43,10 +55,11 @@ void GraphicEngine::resize(uint width, uint height)
     GLC(glViewport (0, 0, width, height));
 }
 
-void GraphicEngine::render(uint m, uint p)
+void GraphicEngine::render(uint m, uint p, uint t)
 { 
     GLuint program = this -> programs[p].id;
     GLuint mesh = this -> meshs[m].VAO;
+    GLuint texture = this -> textures[t].id;
     
     GLC(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
     
@@ -59,8 +72,8 @@ void GraphicEngine::render(uint m, uint p)
     
     glm::mat4 modelViewProjectionMatrix = glm::mat4(1.0f);
     //modelViewProjectionMatrix *= glm::rotate(glm::mat4(1.0f),test,glm::vec3(0.0f, 1.0f, 0.0f)); //rot cam
-    modelViewProjectionMatrix *=  glm::perspective(90.0f, this->width / (float) this->height, 0.001f, 10000.f);
-    modelViewProjectionMatrix *= glm::translate(glm::mat4(1.0f),glm::vec3(0,-5,-10)); //pos obj
+    modelViewProjectionMatrix *=  glm::perspective(75.0f, this->width / (float) this->height, 0.001f, 10000.f);
+    modelViewProjectionMatrix *= glm::translate(glm::mat4(1.0f),glm::vec3(0,0,-3)); //pos obj
     modelViewProjectionMatrix *= glm::rotate(glm::mat4(1.0f),test,glm::vec3(0.0f, 1.0f, 0.0f)); //rot obj
     
     
@@ -70,10 +83,14 @@ void GraphicEngine::render(uint m, uint p)
     
     GLC(glBindVertexArray(mesh));
     
+    GLC(glActiveTexture(GL_TEXTURE0));
+    GLC(glBindTexture(GL_TEXTURE_2D, texture));
+    
     GLC(glDrawElements(GL_TRIANGLES, meshs[m].sizeOfIBO, GL_UNSIGNED_INT, 0));//this->meshs[0].sizeOfIBO, GL_UNSIGNED_INT,0 );
 
     GLC(glBindVertexArray(0));
     GLC(glUseProgram(0));
+    GLC(glBindTexture(GL_TEXTURE_2D, 0));
     GLC(glFlush());
 
     return;
@@ -241,11 +258,9 @@ uint GraphicEngine::loadMesh(string name, string filePath)
         indexArray[i*3+1] = triangles[i].ids[1];
         indexArray[i*3+2] = triangles[i].ids[2];
     }
-    cout << "hey " <<endl;
 
     GLuint VBO;
     GLC(glGenBuffers(1, &VBO));
-     cout << "hey " <<endl;
     GLC(glBindBuffer(GL_ARRAY_BUFFER, VBO));
     GLC(glBufferData(GL_ARRAY_BUFFER, vertices.size() * (3 + 3 + 2) * sizeof(GLfloat), vertexArray, GL_STATIC_DRAW));
     GLC(glBindBuffer(GL_ARRAY_BUFFER, 0));
@@ -360,7 +375,6 @@ uint GraphicEngine::createProgram(string name)
     uint ID=getNextID();
     program p;
     p.id=GLCR(glCreateProgram());
-    cout << "created shader: " << p.id << endl;
     p.backrefs=0;
     p.name=name;
     
@@ -389,9 +403,11 @@ void GraphicEngine::linkProgram(uint program)
 	GLuint p;
 	p = this->programs[program].id;
 	
+	/*
 	GLC(glBindAttribLocation(p, VERTEX_POSITION_ATTRIB, "in_position"));
 	GLC(glBindAttribLocation(p, VERTEX_NORMAL_ATTRIB, "in_normal"));
 	GLC(glBindAttribLocation(p, VERTEX_TEXTCOORD_ATTRIB, "in_textCoord"));
+	*/
 	
 	GLC(glLinkProgram(p));
 
@@ -416,4 +432,53 @@ void GraphicEngine::linkProgram(uint program)
 	}
 
 }
+
+uint GraphicEngine::loadTexture(string name, string filePath)
+{
+    
+    ILuint ilID;
+    GLuint glID;
+    
+    ilGenImages(1, &ilID);
+    ilBindImage(ilID);
+    
+    if (!ilLoadImage(filePath.c_str()))
+        exit (11);
+    
+    if (!ilConvertImage(IL_RGBA,IL_UNSIGNED_BYTE))
+        exit (11);
+    
+    GLC(glGenTextures(1,&glID));
+    GLC(glBindTexture(GL_TEXTURE_2D,glID));
+
+    GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+    GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+    
+    GLC(glTexImage2D(
+        GL_TEXTURE_2D,
+        0,
+        GL_RGBA8,
+        ilGetInteger(IL_IMAGE_WIDTH),
+        ilGetInteger(IL_IMAGE_HEIGHT),
+        0,
+        ilGetInteger(IL_IMAGE_FORMAT),
+        GL_UNSIGNED_BYTE,
+        ilGetData()
+    ));
+    
+    GraphicEngine::texture t;
+    t.id = glID;
+    t.name = name;
+    t.height = ilGetInteger(IL_IMAGE_HEIGHT);
+    t.width = ilGetInteger(IL_IMAGE_WIDTH);
+    t.size = ilGetInteger(IL_IMAGE_WIDTH) * ilGetInteger(IL_IMAGE_HEIGHT) * ilGetInteger(IL_IMAGE_BPP);
+    t.backrefs = 0;
+    
+    ilDeleteImages(1, &ilID);
+    
+    uint ID = getNextID();
+    this->textures.insert(pair<uint,texture>(ID,t));
+    return ID;
+}
+
 
