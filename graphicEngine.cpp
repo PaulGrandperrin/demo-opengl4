@@ -55,7 +55,7 @@ void GraphicEngine::resize(uint width, uint height)
     GLC(glViewport (0, 0, width, height));
 }
 
-void GraphicEngine::render(uint m, uint p, uint t)
+void GraphicEngine::render(float time, uint m, uint p, uint t)
 { 
     GLuint program = this -> programs[p].id;
     GLuint mesh = this -> meshs[m].VAO;
@@ -65,16 +65,14 @@ void GraphicEngine::render(uint m, uint p, uint t)
     
     GLC(glEnable(GL_DEPTH_TEST));
     GLC(glDisable(GL_BLEND));
-    
-    test += 0.1;
-    
+
     GLC(glUseProgram(program));
     
     glm::mat4 modelViewProjectionMatrix = glm::mat4(1.0f);
     //modelViewProjectionMatrix *= glm::rotate(glm::mat4(1.0f),test,glm::vec3(0.0f, 1.0f, 0.0f)); //rot cam
     modelViewProjectionMatrix *=  glm::perspective(75.0f, this->width / (float) this->height, 0.001f, 10000.f);
     modelViewProjectionMatrix *= glm::translate(glm::mat4(1.0f),glm::vec3(0,0,-3)); //pos obj
-    modelViewProjectionMatrix *= glm::rotate(glm::mat4(1.0f),test,glm::vec3(0.0f, 1.0f, 0.0f)); //rot obj
+    modelViewProjectionMatrix *= glm::rotate(glm::mat4(1.0f),time*30,glm::vec3(0.0f, 1.0f, 0.0f)); //rot obj
     
     
     GLuint projectionMatrixId = GLCR(glGetUniformLocation(program, "projectionMatrix" ));
@@ -221,13 +219,14 @@ uint GraphicEngine::loadMesh(string name, string filePath)
     file.close();
 
     // TODO calculate bounding sphere
-
+  cout << "vertice size: "<<vertices.size() << endl;
     GLfloat* vertexArray = new GLfloat[vertices.size() * (3 + 3 + 2)];
-    
+    cout << "vertice: "<<vertexArray << endl;
     
     /* TODO Optimize the order of vertices */
     for(auto it=vertices.begin(); it!=vertices.end(); it++)
     {
+	cout << "1" << endl;
         vertexArray[it->second*8]   = points[it->first.pointId].x;
         vertexArray[it->second*8+1] = points[it->first.pointId].y;
         vertexArray[it->second*8+2] = points[it->first.pointId].z;
@@ -451,9 +450,11 @@ uint GraphicEngine::loadTexture(string name, string filePath)
     GLC(glGenTextures(1,&glID));
     GLC(glBindTexture(GL_TEXTURE_2D,glID));
 
-    GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+    GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR));
     GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+    GLC(glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16));
     
+
     GLC(glTexImage2D(
         GL_TEXTURE_2D,
         0,
@@ -465,6 +466,9 @@ uint GraphicEngine::loadTexture(string name, string filePath)
         GL_UNSIGNED_BYTE,
         ilGetData()
     ));
+    
+    GLC(glHint(GL_GENERATE_MIPMAP_HINT, GL_NICEST));
+    GLC(glGenerateMipmap(GL_TEXTURE_2D));
     
     GraphicEngine::texture t;
     t.id = glID;

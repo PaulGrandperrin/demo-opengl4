@@ -119,7 +119,7 @@ public:
 
     void init(uint width,uint height);
     void resize(uint width,uint height);
-    void render(uint m, uint p, uint t);
+    void render(float time, uint m, uint p, uint t);
 
     // FS Resource loaders
     

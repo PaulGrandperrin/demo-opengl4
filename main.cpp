@@ -1,5 +1,7 @@
 #include <iostream>
 
+#include <time.h>
+
 #include "graphicEngine.hpp"
 #include <GL/glew.h>
 #include <GL/glfw.h>
@@ -13,7 +15,7 @@ void resize(int x, int y)
 
 int main(int argc, char* argv[], char* env[])
 {  
-  
+    struct timespec time;
     bool running=true;
 
     if(!glfwInit())
@@ -23,7 +25,7 @@ int main(int argc, char* argv[], char* env[])
     glfwOpenWindowHint(GLFW_OPENGL_VERSION_MAJOR,4);
     glfwOpenWindowHint(GLFW_OPENGL_VERSION_MINOR,3);
     glfwOpenWindowHint(GLFW_OPENGL_PROFILE,GLFW_OPENGL_CORE_PROFILE);
-    glfwOpenWindowHint(GLFW_FSAA_SAMPLES,16);
+    //glfwOpenWindowHint(GLFW_FSAA_SAMPLES,16);
 
     if(!glfwOpenWindow(640,480, 0,0,0,0,0,0,GLFW_WINDOW))
       //goto failOWindow;
@@ -44,7 +46,9 @@ int main(int argc, char* argv[], char* env[])
     
     while( running )
     {
-        GE.render(mesh, program, texture);
+	clock_gettime(CLOCK_MONOTONIC,&time);
+        float monoTime = time.tv_nsec / 1000000000.0f + time.tv_sec;
+	GE.render((float)monoTime,mesh, program, texture);
         glfwSwapBuffers();
         running = !glfwGetKey(GLFW_KEY_ESC) && glfwGetWindowParam(GLFW_OPENED);
     }
