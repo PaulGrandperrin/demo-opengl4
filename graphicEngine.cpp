@@ -63,8 +63,11 @@ void GE::render(Object* o, double time)
     GLC(glEnable(GL_DEPTH_TEST));
     GLC(glDisable(GL_BLEND));
 
+    glm::mat4 mat = glm::perspective(75.0f, this->width / (float) this->height, 0.001f, 10000.f);
     
-    o->draw();
+    // TODO Camera positioning
+    
+    o->draw(mat);
 
     GLC(glBindVertexArray(0));
     GLC(glUseProgram(0));
@@ -76,7 +79,7 @@ void GE::render(Object* o, double time)
 }
 
 
-void GE::drawObjectLeaf(ObjectLeaf* of)
+void GE::drawObjectLeaf(ObjectLeaf* of, glm::mat4 mat)
 {
     mesh m = meshs[of->mesh];
     texture t = textures[of->texture];
@@ -84,25 +87,15 @@ void GE::drawObjectLeaf(ObjectLeaf* of)
   
     GLC(glUseProgram(p.id));
     
-    struct timespec time;
-    clock_gettime(CLOCK_MONOTONIC,&time);
-    double monoTime = time.tv_nsec / (double)1000000000.0f + time.tv_sec;
-    
-    glm::mat4 modelViewProjectionMatrix =  glm::perspective(75.0f, this->width / (float) this->height, 0.001f, 10000.f);
-    modelViewProjectionMatrix = glm::rotate(modelViewProjectionMatrix,(float)monoTime*30,glm::vec3(0.0f, 1.0f, 0.0f)); //rot cam
-    modelViewProjectionMatrix = glm::translate(modelViewProjectionMatrix,glm::vec3(0,0,-3)); //depl obj
-    modelViewProjectionMatrix = glm::rotate(modelViewProjectionMatrix,(float)monoTime*300,glm::vec3(0.0f, 1.0f, 0.0f)); //rot obj
-    
     GLuint projectionMatrixId = GLCR(glGetUniformLocation(p.id, "projectionMatrix" ));
-    
-    GLC(glUniformMatrix4fv(projectionMatrixId, 1, 0, (GLfloat*) glm::value_ptr(modelViewProjectionMatrix)));
+    GLC(glUniformMatrix4fv(projectionMatrixId, 1, 0, (GLfloat*) glm::value_ptr(mat)));
     
     GLC(glBindVertexArray(m.VAO));
     
     GLC(glActiveTexture(GL_TEXTURE0));
     GLC(glBindTexture(GL_TEXTURE_2D, t.id));
     
-    GLC(glDrawElements(GL_TRIANGLES, m.sizeOfIBO, GL_UNSIGNED_INT, 0));//this->meshs[0].sizeOfIBO, GL_UNSIGNED_INT,0 );
+    GLC(glDrawElements(GL_TRIANGLES, m.sizeOfIBO, GL_UNSIGNED_INT, 0));
   
 }
 
@@ -495,7 +488,16 @@ uint GE::loadTexture(string name, string filePath)
     return ID;
 }
 
+// -----------------------
 
+Object::Object(GE* ge) :ge(ge) {}
+
+ObjectComposite::ObjectComposite(GE* ge) :Object(ge) {}
+
+
+ObjectLeaf::ObjectLeaf(GE* ge) :Object(ge) {}
+
+// ----------------
 
 
 void Object::rotate(float angle, float x, float y, float z)
@@ -518,6 +520,8 @@ void Object::identity()
   modelMatrix= glm::mat4(1.0f);
 }
 
+// -------------------------
+
 void ObjectComposite::add(Object* o)
 {
     children.push_front(o);
@@ -528,23 +532,21 @@ void ObjectComposite::remove(Object* o)
     children.remove(o);
 }
 
+//--------------------
 
-void ObjectComposite::draw()
+
+void ObjectComposite::draw(glm::mat4 mat)
 {
+  mat *= modelMatrix;
   for(auto it = children.begin(); it != children.end(); ++it)
   {
-      (*it)->draw();
+      (*it)->draw(mat);
   }
 }
 
-Object::Object(GE* ge) :ge(ge) {}
 
-ObjectComposite::ObjectComposite(GE* ge) :Object(ge) {}
-
-
-ObjectLeaf::ObjectLeaf(GE* ge) :Object(ge) {}
-
-void ObjectLeaf::draw()
+void ObjectLeaf::draw(glm::mat4 mat)
 {
-    ge->drawObjectLeaf(this);
+    mat *= modelMatrix;
+    ge->drawObjectLeaf(this, mat);
 }

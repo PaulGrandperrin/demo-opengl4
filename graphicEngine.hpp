@@ -146,19 +146,6 @@ public:
     void addShaderToProgram(uint shader, uint program);
     void linkProgram(uint program);
     void deleteProgram(uint id);
-
-    // Scene graph management
-    
-    uint createPiece(string name);
-    void addTextureToPiece(uint texture, uint piece);
-    void addProgramToPiece(uint program, uint piece);
-    void addMeshToPiece(uint mesh, uint piece);
-    void deletePiece(uint id);
-
-    uint createObject(string name);
-    void addPieceToObject(uint piece, uint object);
-    void addObjectToObject(uint componant, uint composite);
-    void deleteObject(uint id);
     
     
     // Memory management
@@ -299,7 +286,7 @@ private:
     friend class ObjectLeaf;
     friend class Object;
     friend class ObjectComposite;
-    void drawObjectLeaf(ObjectLeaf* of);
+    void drawObjectLeaf(ObjectLeaf* of, glm::mat4 mat);
 };
 
 class Object
@@ -313,12 +300,10 @@ public:
     void scale(float x, float y, float z);
     void identity();
     
-    virtual void draw() = 0;
+    virtual void draw(glm::mat4 mat) = 0;
 
 protected:
   GE* ge;
-    
-private:
   glm::mat4 modelMatrix;
 };
 
@@ -330,7 +315,7 @@ public:
   
   ObjectComposite(GE* ge);
   
-  virtual void draw();
+  virtual void draw(glm::mat4 mat);
   
 private:
   list<Object*> children;
@@ -346,7 +331,7 @@ public:
   
   ObjectLeaf(GE* ge);
   
-  virtual void draw();
+  virtual void draw(glm::mat4 mat);
 };
 
 

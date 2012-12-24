@@ -42,8 +42,13 @@ int main(int argc, char* argv[], char* env[])
     glfwSwapInterval(1);
     
     Ge.init(640,480);
-    uint mesh = Ge.loadMesh("test",argv[1]);
-    uint texture = Ge.loadTexture("test",argv[2]);
+    
+    uint meshDemon = Ge.loadMesh("test","demon.obj");
+    uint meshCube = Ge.loadMesh("test","cube.obj");
+    
+    uint textureDemon = Ge.loadTexture("test","demon.png");
+    uint textureCube = Ge.loadTexture("test","tux.png");
+    
     uint program = Ge.createProgram("test");
     uint ps = Ge.loadShader("test","ps.glsl",GL_FRAGMENT_SHADER);
     uint vs = Ge.loadShader("test","vs.glsl",GL_VERTEX_SHADER);
@@ -52,18 +57,43 @@ int main(int argc, char* argv[], char* env[])
     Ge.linkProgram(program);
     
     ObjectLeaf* demon = new ObjectLeaf(&Ge);
-    demon->mesh=mesh;
+    demon->mesh=meshDemon;
     demon->program=program;
-    demon->texture=texture;
-    demon->identity();
+    demon->texture=textureDemon;
+    
+    ObjectLeaf* cube = new ObjectLeaf(&Ge);
+    cube->mesh=meshCube;
+    cube->program=program;
+    cube->texture=textureCube;
+    
+    ObjectComposite* scene = new ObjectComposite(&Ge);
+    scene->add(demon);
+    scene->add(cube);
+    
+    
     
     while( running )
     {
 	//struct timespec time;
 	//clock_gettime(CLOCK_MONOTONIC,&time);
         //double monoTime = time.tv_nsec / (double)1000000000.0f + time.tv_sec;
+        
 	double monoTime = glfwGetTime();
-	Ge.render(demon, monoTime);
+	
+	demon->identity();
+	demon->translate(0,0,0);
+	
+	cube->identity();
+	cube->translate(0,0,1);
+	cube->scale(0.2f,0.2f,0.2f);
+	cube->rotate((float)monoTime*600, 1, 0, 0);
+	
+	scene->identity();
+	scene->translate(0,0,-3);
+	scene->rotate((float)monoTime*200, 0, 1, 0);
+	
+	
+	Ge.render(scene, monoTime);
         glfwSwapBuffers();
         running = !glfwGetKey(GLFW_KEY_ESC) && glfwGetWindowParam(GLFW_OPENED);
     }
