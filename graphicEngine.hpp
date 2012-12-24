@@ -3,6 +3,7 @@
 #include <iostream>
 #include <map>
 #include <vector>
+#include <list>
 #include <string>
 
 #include <GL/glew.h>
@@ -16,8 +17,8 @@
  */
 
 #ifdef DEBUG
-  #define GLC(stmt) {stmt;GraphicEngine::GLCheckError(#stmt, __FILE__,__LINE__);}
-  #define GLCR(stmt) [=]()->decltype(stmt){auto tmp=stmt;GraphicEngine::GLCheckError(#stmt,__FILE__,__LINE__);return tmp;}()
+  #define GLC(stmt) {stmt;GE::GLCheckError(#stmt, __FILE__,__LINE__);}
+  #define GLCR(stmt) [=]()->decltype(stmt){auto tmp=stmt;GE::GLCheckError(#stmt,__FILE__,__LINE__);return tmp;}()
 #else
   #define GLC(stmt) stmt
   #define GLCR(stmt) stmt
@@ -112,14 +113,21 @@ using namespace std;
  * 	
  */
 
-class GraphicEngine
+namespace DSGE
+{
+
+class Object;
+class ObjectLeaf;
+class ObjectComposite; 
+
+class GE
 {
 public:
-    GraphicEngine();
+    GE();
 
     void init(uint width,uint height);
     void resize(uint width,uint height);
-    void render(float time, uint m, uint p, uint t);
+    void render(Object* o, double time);
 
     // FS Resource loaders
     
@@ -282,32 +290,65 @@ private:
     map<uint, shader>   shaders;
     map<uint, program>  programs;
 
-    /** Scene level resources
-    *
-    *  Corresponds to one object in the scene graph.
-    */
-    
-    struct piece : Resource
-    {
-        uint mesh;
-        uint program;
-        uint texture; // TODO allow multiple textures
-    };
-
-    struct object : Resource
-    {
-        uint piece;
-        vector<uint> object;
-	
-	glm::mat4 modelMatrix;
-    };
-		
-    map<string, uint> pieces;
-    map<string, uint> objects;
-    
     // --------------
     
     uint width, height;
     
+    
+private:
+    friend class ObjectLeaf;
+    friend class Object;
+    friend class ObjectComposite;
+    void drawObjectLeaf(ObjectLeaf* of);
 };
 
+class Object
+{
+public:
+    Object(GE* ge);
+    virtual ~Object() = default;
+    
+    void rotate(float angle, float x, float y, float z);
+    void translate(float x, float y, float z);
+    void scale(float x, float y, float z);
+    void identity();
+    
+    virtual void draw() = 0;
+
+protected:
+  GE* ge;
+    
+private:
+  glm::mat4 modelMatrix;
+};
+
+class ObjectComposite : public Object
+{
+public:
+  void add(Object* o);
+  void remove(Object* o);
+  
+  ObjectComposite(GE* ge);
+  
+  virtual void draw();
+  
+private:
+  list<Object*> children;
+  
+};
+
+class ObjectLeaf : public Object
+{
+public:
+  uint mesh;
+  uint program;
+  uint texture;
+  
+  ObjectLeaf(GE* ge);
+  
+  virtual void draw();
+};
+
+
+
+}

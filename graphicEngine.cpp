@@ -14,15 +14,16 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include <time.h> //a virer
 
 using namespace std;
 
+using namespace DSGE;
 
-
-GraphicEngine::GraphicEngine() : lastID(0), test(0)
+GE::GE() : lastID(0), test(0)
 {}
 
-void GraphicEngine::init(uint width, uint height)
+void GE::init(uint width, uint height)
 {
     this->width = width;
     this->height = height;
@@ -47,7 +48,7 @@ void GraphicEngine::init(uint width, uint height)
     GLC(glClearColor(1, 0, 0, 1));
 }
 
-void GraphicEngine::resize(uint width, uint height)
+void GE::resize(uint width, uint height)
 {
     this->width = width;
     this->height = height;
@@ -55,47 +56,59 @@ void GraphicEngine::resize(uint width, uint height)
     GLC(glViewport (0, 0, width, height));
 }
 
-void GraphicEngine::render(float time, uint m, uint p, uint t)
+void GE::render(Object* o, double time)
 { 
-    GLuint program = this -> programs[p].id;
-    GLuint mesh = this -> meshs[m].VAO;
-    GLuint texture = this -> textures[t].id;
     
     GLC(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
-    
     GLC(glEnable(GL_DEPTH_TEST));
     GLC(glDisable(GL_BLEND));
 
-    GLC(glUseProgram(program));
     
-    glm::mat4 modelViewProjectionMatrix = glm::mat4(1.0f);
-    //modelViewProjectionMatrix *= glm::rotate(glm::mat4(1.0f),test,glm::vec3(0.0f, 1.0f, 0.0f)); //rot cam
-    modelViewProjectionMatrix *=  glm::perspective(75.0f, this->width / (float) this->height, 0.001f, 10000.f);
-    modelViewProjectionMatrix *= glm::translate(glm::mat4(1.0f),glm::vec3(0,0,-3)); //pos obj
-    modelViewProjectionMatrix *= glm::rotate(glm::mat4(1.0f),time*30,glm::vec3(0.0f, 1.0f, 0.0f)); //rot obj
-    
-    
-    GLuint projectionMatrixId = GLCR(glGetUniformLocation(program, "projectionMatrix" ));
-    
-    GLC(glUniformMatrix4fv(projectionMatrixId, 1, 0, (GLfloat*) glm::value_ptr(modelViewProjectionMatrix)));
-    
-    GLC(glBindVertexArray(mesh));
-    
-    GLC(glActiveTexture(GL_TEXTURE0));
-    GLC(glBindTexture(GL_TEXTURE_2D, texture));
-    
-    GLC(glDrawElements(GL_TRIANGLES, meshs[m].sizeOfIBO, GL_UNSIGNED_INT, 0));//this->meshs[0].sizeOfIBO, GL_UNSIGNED_INT,0 );
+    o->draw();
 
     GLC(glBindVertexArray(0));
     GLC(glUseProgram(0));
     GLC(glBindTexture(GL_TEXTURE_2D, 0));
+    
     GLC(glFlush());
 
     return;
 }
 
 
-uint GraphicEngine::loadMesh(string name, string filePath)
+void GE::drawObjectLeaf(ObjectLeaf* of)
+{
+    mesh m = meshs[of->mesh];
+    texture t = textures[of->texture];
+    program p = programs[of->program];
+  
+    GLC(glUseProgram(p.id));
+    
+    struct timespec time;
+    clock_gettime(CLOCK_MONOTONIC,&time);
+    double monoTime = time.tv_nsec / (double)1000000000.0f + time.tv_sec;
+    
+    glm::mat4 modelViewProjectionMatrix =  glm::perspective(75.0f, this->width / (float) this->height, 0.001f, 10000.f);
+    modelViewProjectionMatrix = glm::rotate(modelViewProjectionMatrix,(float)monoTime*30,glm::vec3(0.0f, 1.0f, 0.0f)); //rot cam
+    modelViewProjectionMatrix = glm::translate(modelViewProjectionMatrix,glm::vec3(0,0,-3)); //depl obj
+    modelViewProjectionMatrix = glm::rotate(modelViewProjectionMatrix,(float)monoTime*300,glm::vec3(0.0f, 1.0f, 0.0f)); //rot obj
+    
+    GLuint projectionMatrixId = GLCR(glGetUniformLocation(p.id, "projectionMatrix" ));
+    
+    GLC(glUniformMatrix4fv(projectionMatrixId, 1, 0, (GLfloat*) glm::value_ptr(modelViewProjectionMatrix)));
+    
+    GLC(glBindVertexArray(m.VAO));
+    
+    GLC(glActiveTexture(GL_TEXTURE0));
+    GLC(glBindTexture(GL_TEXTURE_2D, t.id));
+    
+    GLC(glDrawElements(GL_TRIANGLES, m.sizeOfIBO, GL_UNSIGNED_INT, 0));//this->meshs[0].sizeOfIBO, GL_UNSIGNED_INT,0 );
+  
+}
+
+
+
+uint GE::loadMesh(string name, string filePath)
 {
 
     struct point
@@ -219,14 +232,11 @@ uint GraphicEngine::loadMesh(string name, string filePath)
     file.close();
 
     // TODO calculate bounding sphere
-  cout << "vertice size: "<<vertices.size() << endl;
     GLfloat* vertexArray = new GLfloat[vertices.size() * (3 + 3 + 2)];
-    cout << "vertice: "<<vertexArray << endl;
     
     /* TODO Optimize the order of vertices */
     for(auto it=vertices.begin(); it!=vertices.end(); it++)
     {
-	cout << "1" << endl;
         vertexArray[it->second*8]   = points[it->first.pointId].x;
         vertexArray[it->second*8+1] = points[it->first.pointId].y;
         vertexArray[it->second*8+2] = points[it->first.pointId].z;
@@ -318,7 +328,7 @@ uint GraphicEngine::loadMesh(string name, string filePath)
     return ID;
 }
 
-uint GraphicEngine::loadShader(string name, string filePath, GLenum type)
+uint GE::loadShader(string name, string filePath, GLenum type)
 {
   	GLuint shader;
 	GLsizei logsize;
@@ -355,7 +365,7 @@ uint GraphicEngine::loadShader(string name, string filePath, GLenum type)
 		return 0;
 	}
 
-	GraphicEngine::shader s;
+	GE::shader s;
 	uint ID=getNextID();
 	s.id = shader;
 	s.type = type;
@@ -363,13 +373,13 @@ uint GraphicEngine::loadShader(string name, string filePath, GLenum type)
 	s.backrefs=0;
 	s.name=name;
 	
-	this->shaders.insert(pair<uint,GraphicEngine::shader>(ID,s));
+	this->shaders.insert(pair<uint,GE::shader>(ID,s));
 	
 	return ID;
 }
 
 
-uint GraphicEngine::createProgram(string name)
+uint GE::createProgram(string name)
 {
     uint ID=getNextID();
     program p;
@@ -382,7 +392,7 @@ uint GraphicEngine::createProgram(string name)
 }
 
 
-void GraphicEngine::addShaderToProgram(uint shader, uint program)
+void GE::addShaderToProgram(uint shader, uint program)
 {
 	GLuint p, s;
 	
@@ -397,7 +407,7 @@ void GraphicEngine::addShaderToProgram(uint shader, uint program)
 	//TODO garbage collection ?
 }
 	
-void GraphicEngine::linkProgram(uint program)
+void GE::linkProgram(uint program)
 {
 	GLuint p;
 	p = this->programs[program].id;
@@ -432,7 +442,7 @@ void GraphicEngine::linkProgram(uint program)
 
 }
 
-uint GraphicEngine::loadTexture(string name, string filePath)
+uint GE::loadTexture(string name, string filePath)
 {
     
     ILuint ilID;
@@ -470,7 +480,7 @@ uint GraphicEngine::loadTexture(string name, string filePath)
     GLC(glHint(GL_GENERATE_MIPMAP_HINT, GL_NICEST));
     GLC(glGenerateMipmap(GL_TEXTURE_2D));
     
-    GraphicEngine::texture t;
+    GE::texture t;
     t.id = glID;
     t.name = name;
     t.height = ilGetInteger(IL_IMAGE_HEIGHT);
@@ -486,3 +496,55 @@ uint GraphicEngine::loadTexture(string name, string filePath)
 }
 
 
+
+
+void Object::rotate(float angle, float x, float y, float z)
+{
+  modelMatrix = glm::rotate(modelMatrix,angle,glm::vec3(x, y, z));
+}
+
+void Object::translate(float x, float y, float z)
+{
+  modelMatrix = glm::translate(modelMatrix,glm::vec3(x, y, z));
+}
+
+void Object::scale(float x, float y, float z)
+{
+  modelMatrix = glm::scale(modelMatrix,glm::vec3(x, y, z));
+}
+
+void Object::identity()
+{
+  modelMatrix= glm::mat4(1.0f);
+}
+
+void ObjectComposite::add(Object* o)
+{
+    children.push_front(o);
+}
+
+void ObjectComposite::remove(Object* o)
+{
+    children.remove(o);
+}
+
+
+void ObjectComposite::draw()
+{
+  for(auto it = children.begin(); it != children.end(); ++it)
+  {
+      (*it)->draw();
+  }
+}
+
+Object::Object(GE* ge) :ge(ge) {}
+
+ObjectComposite::ObjectComposite(GE* ge) :Object(ge) {}
+
+
+ObjectLeaf::ObjectLeaf(GE* ge) :Object(ge) {}
+
+void ObjectLeaf::draw()
+{
+    ge->drawObjectLeaf(this);
+}
