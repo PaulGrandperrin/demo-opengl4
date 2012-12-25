@@ -115,10 +115,61 @@ using namespace std;
 
 namespace DSGE
 {
+  
+class GE;
+  
+class SceneObject
+{
+public:
+    SceneObject(GE* ge);
+    virtual ~SceneObject() = default;
+    
+    void rotate(float angle, float x, float y, float z);
+    void translate(float x, float y, float z);
+    void scale(float x, float y, float z);
+    void identity();
+    
+protected:
+  GE* ge;
+  glm::mat4 modelMatrix;
+  
+  friend class GE;
+};
 
-class Object;
-class ObjectLeaf;
-class ObjectComposite; 
+class Solid: public SceneObject
+{
+public:
+  Solid(GE* ge);
+  virtual void draw(glm::mat4 mat) = 0;
+};
+
+class SolidComposite : public Solid
+{
+public:
+  void add(Solid* o);
+  void remove(Solid* o);
+  
+  SolidComposite(GE* ge);
+  
+  virtual void draw(glm::mat4 mat);
+  
+private:
+  list<Solid*> children;
+  
+};
+
+class SolidLeaf : public Solid
+{
+public:
+  uint mesh;
+  uint program;
+  uint texture;
+  
+  SolidLeaf(GE* ge);
+  
+  virtual void draw(glm::mat4 mat);
+};
+
 
 class GE
 {
@@ -127,7 +178,7 @@ public:
 
     void init(uint width,uint height);
     void resize(uint width,uint height);
-    void render(Object* o, double time);
+    void render(Solid* o, double time);
 
     // FS Resource loaders
     
@@ -206,12 +257,12 @@ private: // Class methods
 	
     }
 
-private: //
+public:
+    SceneObject camera;
 
     
 private:
     uint lastID;
-    float test;
     
     enum
     {
@@ -283,57 +334,11 @@ private:
     
     
 private:
-    friend class ObjectLeaf;
-    friend class Object;
-    friend class ObjectComposite;
-    void drawObjectLeaf(ObjectLeaf* of, glm::mat4 mat);
+    friend class SolidLeaf;
+    friend class Solid;
+    friend class SolidComposite;
+    void drawSolidLeaf(SolidLeaf* of, glm::mat4 mat);
 };
-
-class Object
-{
-public:
-    Object(GE* ge);
-    virtual ~Object() = default;
-    
-    void rotate(float angle, float x, float y, float z);
-    void translate(float x, float y, float z);
-    void scale(float x, float y, float z);
-    void identity();
-    
-    virtual void draw(glm::mat4 mat) = 0;
-
-protected:
-  GE* ge;
-  glm::mat4 modelMatrix;
-};
-
-class ObjectComposite : public Object
-{
-public:
-  void add(Object* o);
-  void remove(Object* o);
-  
-  ObjectComposite(GE* ge);
-  
-  virtual void draw(glm::mat4 mat);
-  
-private:
-  list<Object*> children;
-  
-};
-
-class ObjectLeaf : public Object
-{
-public:
-  uint mesh;
-  uint program;
-  uint texture;
-  
-  ObjectLeaf(GE* ge);
-  
-  virtual void draw(glm::mat4 mat);
-};
-
 
 
 }

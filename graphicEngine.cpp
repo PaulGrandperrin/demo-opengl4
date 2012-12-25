@@ -20,7 +20,7 @@ using namespace std;
 
 using namespace DSGE;
 
-GE::GE() : lastID(0), test(0)
+GE::GE() : camera(this), lastID(0)
 {}
 
 void GE::init(uint width, uint height)
@@ -56,7 +56,7 @@ void GE::resize(uint width, uint height)
     GLC(glViewport (0, 0, width, height));
 }
 
-void GE::render(Object* o, double time)
+void GE::render(Solid* o, double time)
 { 
     
     GLC(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
@@ -65,7 +65,7 @@ void GE::render(Object* o, double time)
 
     glm::mat4 mat = glm::perspective(75.0f, this->width / (float) this->height, 0.001f, 10000.f);
     
-    // TODO Camera positioning
+    mat *= camera.modelMatrix;
     
     o->draw(mat);
 
@@ -79,7 +79,7 @@ void GE::render(Object* o, double time)
 }
 
 
-void GE::drawObjectLeaf(ObjectLeaf* of, glm::mat4 mat)
+void GE::drawSolidLeaf(SolidLeaf* of, glm::mat4 mat)
 {
     mesh m = meshs[of->mesh];
     texture t = textures[of->texture];
@@ -490,44 +490,46 @@ uint GE::loadTexture(string name, string filePath)
 
 // -----------------------
 
-Object::Object(GE* ge) :ge(ge) {}
+SceneObject::SceneObject(GE* ge): ge(ge) {}
 
-ObjectComposite::ObjectComposite(GE* ge) :Object(ge) {}
+Solid::Solid(GE* ge): SceneObject(ge) {}
 
+SolidComposite::SolidComposite(GE* ge): Solid(ge) {}
 
-ObjectLeaf::ObjectLeaf(GE* ge) :Object(ge) {}
+SolidLeaf::SolidLeaf(GE* ge): Solid(ge) {}
+
 
 // ----------------
 
 
-void Object::rotate(float angle, float x, float y, float z)
+void SceneObject::rotate(float angle, float x, float y, float z)
 {
   modelMatrix = glm::rotate(modelMatrix,angle,glm::vec3(x, y, z));
 }
 
-void Object::translate(float x, float y, float z)
+void SceneObject::translate(float x, float y, float z)
 {
   modelMatrix = glm::translate(modelMatrix,glm::vec3(x, y, z));
 }
 
-void Object::scale(float x, float y, float z)
+void SceneObject::scale(float x, float y, float z)
 {
   modelMatrix = glm::scale(modelMatrix,glm::vec3(x, y, z));
 }
 
-void Object::identity()
+void SceneObject::identity()
 {
   modelMatrix= glm::mat4(1.0f);
 }
 
 // -------------------------
 
-void ObjectComposite::add(Object* o)
+void SolidComposite::add(Solid* o)
 {
     children.push_front(o);
 }
 
-void ObjectComposite::remove(Object* o)
+void SolidComposite::remove(Solid* o)
 {
     children.remove(o);
 }
@@ -535,7 +537,7 @@ void ObjectComposite::remove(Object* o)
 //--------------------
 
 
-void ObjectComposite::draw(glm::mat4 mat)
+void SolidComposite::draw(glm::mat4 mat)
 {
   mat *= modelMatrix;
   for(auto it = children.begin(); it != children.end(); ++it)
@@ -545,8 +547,9 @@ void ObjectComposite::draw(glm::mat4 mat)
 }
 
 
-void ObjectLeaf::draw(glm::mat4 mat)
+void SolidLeaf::draw(glm::mat4 mat)
 {
     mat *= modelMatrix;
-    ge->drawObjectLeaf(this, mat);
+    ge->drawSolidLeaf(this, mat);
 }
+

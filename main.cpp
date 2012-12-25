@@ -56,21 +56,21 @@ int main(int argc, char* argv[], char* env[])
     Ge.addShaderToProgram(vs,program);
     Ge.linkProgram(program);
     
-    ObjectLeaf* demon = new ObjectLeaf(&Ge);
+    SolidLeaf* demon = new SolidLeaf(&Ge);
     demon->mesh=meshDemon;
     demon->program=program;
     demon->texture=textureDemon;
     
-    ObjectLeaf* cube = new ObjectLeaf(&Ge);
+    SolidLeaf* cube = new SolidLeaf(&Ge);
     cube->mesh=meshCube;
     cube->program=program;
     cube->texture=textureCube;
     
-    ObjectComposite* scene = new ObjectComposite(&Ge);
+    SolidComposite* scene = new SolidComposite(&Ge);
     scene->add(demon);
     scene->add(cube);
     
-    
+    float azimut = 0, elevation = 0, twist = 0;
     
     while( running )
     {
@@ -79,6 +79,21 @@ int main(int argc, char* argv[], char* env[])
         //double monoTime = time.tv_nsec / (double)1000000000.0f + time.tv_sec;
         
 	double monoTime = glfwGetTime();
+	if( glfwGetKey('D') ==  GLFW_PRESS )
+	  azimut += 1;
+	
+	if( glfwGetKey('Q') ==  GLFW_PRESS )
+	  azimut -= 1;
+	
+	if( glfwGetKey('S') ==  GLFW_PRESS )
+	  elevation += 1;
+	
+	if( glfwGetKey('Z') ==  GLFW_PRESS )
+	  elevation -= 1;
+	
+	Ge.camera.identity();
+	Ge.camera.rotate(elevation,1,0,0);
+	Ge.camera.rotate(azimut,0,1,0);
 	
 	demon->identity();
 	demon->translate(0,0,0);
