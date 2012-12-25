@@ -71,6 +71,12 @@ int main(int argc, char* argv[], char* env[])
     scene->add(cube);
     
     float azimut = 0, elevation = 0, twist = 0;
+    float camX = 0, camY = 0, camZ = 0;
+    
+    int mouseX = 0, mouseY = 0;
+    
+    bool mouseHidden = false;
+    bool changeEscapeStatus = true;
     
     while( running )
     {
@@ -78,22 +84,90 @@ int main(int argc, char* argv[], char* env[])
 	//clock_gettime(CLOCK_MONOTONIC,&time);
         //double monoTime = time.tv_nsec / (double)1000000000.0f + time.tv_sec;
         
+        
 	double monoTime = glfwGetTime();
 	if( glfwGetKey('D') ==  GLFW_PRESS )
-	  azimut += 1;
+	{
+	  camZ -= cos(-azimut/360.*2.*3.1415927+3.1415927/2.)*0.1;
+	  camX -= sin(-azimut/360.*2.*3.1415927+3.1415927/2.)*0.1;
+	}
 	
 	if( glfwGetKey('Q') ==  GLFW_PRESS )
-	  azimut -= 1;
+	{
+	  camZ -= cos(-azimut/360.*2.*3.1415927-3.1415927/2.)*0.1;
+	  camX -= sin(-azimut/360.*2.*3.1415927-3.1415927/2.)*0.1;
+	} 
 	
 	if( glfwGetKey('S') ==  GLFW_PRESS )
-	  elevation += 1;
+	{
+	  camZ -= cos(-azimut/360.*2.*3.1415927)*cos(elevation/360.*2.*3.1415927)*0.1;
+	  camX -= sin(-azimut/360.*2.*3.1415927)*cos(elevation/360.*2.*3.1415927)*0.1;
+	  camY -= sin(elevation/360.*2.*3.1415927)*0.1;
+	}
 	
 	if( glfwGetKey('Z') ==  GLFW_PRESS )
-	  elevation -= 1;
+	{
+	  camZ += cos(-azimut/360.*2.*3.1415927)*cos(elevation/360.*2.*3.1415927)*0.1;
+	  camX += sin(-azimut/360.*2.*3.1415927)*cos(elevation/360.*2.*3.1415927)*0.1;
+	  camY += sin(elevation/360.*2.*3.1415927)*0.1;
+	}
+	
+	if( glfwGetKey(GLFW_KEY_SPACE) ==  GLFW_PRESS )
+	{
+	  camY -= 0.1;
+	}
+	
+	if( glfwGetKey(GLFW_KEY_LSHIFT) ==  GLFW_PRESS )
+	{
+	  camY += 0.1;
+	}
+	
+	if(glfwGetMouseButton(GLFW_MOUSE_BUTTON_LEFT))
+	{
+	  glfwDisable(GLFW_MOUSE_CURSOR);
+	  glfwGetMousePos(&mouseX, &mouseY);
+	  mouseHidden = true;
+	}
+	
+	if(glfwGetKey(GLFW_KEY_ESC))
+	{
+	  if(changeEscapeStatus)
+	  {
+	    if(mouseHidden)
+	    {
+	      glfwEnable(GLFW_MOUSE_CURSOR);
+	      mouseHidden = false;
+	    }
+	    else
+	    {
+	      running = false;
+	    }
+	    changeEscapeStatus = false;
+	  }
+	}
+	else
+	{
+	  changeEscapeStatus = true;
+	}
+	
+	if(mouseHidden)
+	{
+	  int x, y;
+	  glfwGetMousePos(&x, &y);
+	  x -= mouseX;
+	  y -= mouseY;
+	  mouseX += x;
+	  mouseY += y;
+	  azimut += x/3.;
+	  elevation += y/3.;
+	}
+	
+	cout << "a: "<< azimut << " e: " << elevation << endl;
 	
 	Ge.camera.identity();
 	Ge.camera.rotate(elevation,1,0,0);
 	Ge.camera.rotate(azimut,0,1,0);
+	Ge.camera.translate(camX,camY,camZ);
 	
 	demon->identity();
 	demon->translate(0,0,0);
@@ -110,7 +184,7 @@ int main(int argc, char* argv[], char* env[])
 	
 	Ge.render(scene, monoTime);
         glfwSwapBuffers();
-        running = !glfwGetKey(GLFW_KEY_ESC) && glfwGetWindowParam(GLFW_OPENED);
+        running &= glfwGetWindowParam(GLFW_OPENED);
     }
 
     glfwCloseWindow();
