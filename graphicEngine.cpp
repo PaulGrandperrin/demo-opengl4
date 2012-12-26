@@ -56,10 +56,14 @@ void GE::resize(uint width, uint height)
     GLC(glViewport (0, 0, width, height));
 }
 
+void GE::clearDepth()
+{
+  GLC(glClear(GL_DEPTH_BUFFER_BIT));
+}
+
 void GE::render(Solid* o, double time)
 { 
     
-    GLC(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
     GLC(glEnable(GL_DEPTH_TEST));
     GLC(glDisable(GL_BLEND));
 
@@ -455,6 +459,8 @@ uint GE::loadTexture(string name, string filePath)
 
     GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR));
     GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+    GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
+    GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
     GLC(glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16));
     
 

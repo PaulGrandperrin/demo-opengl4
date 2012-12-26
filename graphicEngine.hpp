@@ -179,6 +179,7 @@ public:
     void init(uint width,uint height);
     void resize(uint width,uint height);
     void render(Solid* o, double time);
+    void clearDepth();
 
     // FS Resource loaders
     

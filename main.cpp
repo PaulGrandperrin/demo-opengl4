@@ -47,7 +47,7 @@ int main(int argc, char* argv[], char* env[])
     uint meshCube = Ge.loadMesh("test","cube.obj");
     
     uint textureDemon = Ge.loadTexture("test","demon.png");
-    uint textureCube = Ge.loadTexture("test","tux.png");
+    uint textureCube = Ge.loadTexture("test","skybox/hi-quality/stormydays.tga");
     
     uint program = Ge.createProgram("test");
     uint ps = Ge.loadShader("test","ps.glsl",GL_FRAGMENT_SHADER);
@@ -160,29 +160,44 @@ int main(int argc, char* argv[], char* env[])
 	  mouseY += y;
 	  azimut += x/3.;
 	  elevation += y/3.;
+	  if(elevation > 90)
+	    elevation = 90;
+	  else if (elevation < -90)
+	    elevation = -90;
 	}
 	
 	cout << "a: "<< azimut << " e: " << elevation << endl;
 	
-	Ge.camera.identity();
-	Ge.camera.rotate(elevation,1,0,0);
-	Ge.camera.rotate(azimut,0,1,0);
-	Ge.camera.translate(camX,camY,camZ);
+
 	
 	demon->identity();
 	demon->translate(0,0,0);
 	
 	cube->identity();
-	cube->translate(0,0,1);
-	cube->scale(0.2f,0.2f,0.2f);
-	cube->rotate((float)monoTime*600, 1, 0, 0);
+	cube->translate(0,0,0);
+	cube->rotate(-90, 1, 0, 0);
+	cube->rotate((float)monoTime, 0, 0, 1);
+	//cube->scale(0.2f,0.2f,0.2f);
+	//cube->rotate((float)monoTime*600, 1, 0, 0);
 	
 	scene->identity();
 	scene->translate(0,0,-3);
-	scene->rotate((float)monoTime*200, 0, 1, 0);
+	scene->rotate((float)monoTime*00, 0, 1, 0);
+	
+	Ge.clearDepth();
+	Ge.camera.identity();
+	Ge.camera.rotate(elevation,1,0,0);
+	Ge.camera.rotate(azimut,0,1,0);
+	Ge.render(cube, monoTime);
 	
 	
-	Ge.render(scene, monoTime);
+	Ge.clearDepth();
+	Ge.camera.identity();
+	Ge.camera.rotate(elevation,1,0,0);
+	Ge.camera.rotate(azimut,0,1,0);
+	Ge.camera.translate(camX,camY,camZ);
+	Ge.render(demon, monoTime);
+	
         glfwSwapBuffers();
         running &= glfwGetWindowParam(GLFW_OPENED);
     }
