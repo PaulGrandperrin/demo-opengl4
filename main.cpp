@@ -1,10 +1,13 @@
 #include <iostream>
 
 #include <time.h>
+#include <math.h>
 
-#include "graphicEngine.hpp"
 #include <GL/glew.h>
 #include <GL/glfw.h>
+
+#include "graphicEngine.hpp"
+
 
 using namespace DSGE;
 
@@ -43,32 +46,47 @@ int main(int argc, char* argv[], char* env[])
     
     Ge.init(640,480);
     
-    uint meshDemon = Ge.loadMesh("test","demon.obj");
-    uint meshCube = Ge.loadMesh("test","cube.obj");
+    uint meshDemon = Ge.loadMesh("test","meshes/demon.obj");
+    uint meshIle = Ge.loadMesh("test","meshes/ile.obj");
+    uint meshCube = Ge.loadMesh("test","meshes/cube.obj");
     
-    uint textureDemon = Ge.loadTexture("test","demon.png");
-    uint textureCube = Ge.loadTexture("test","skybox/hi-quality/stormydays.tga");
+    uint textureDemon = Ge.loadTexture("test","textures/demon.png", true);
+    uint textureIle = Ge.loadTexture("test","textures/ile.png", true);
+    uint textureCube = Ge.loadTexture("test","textures/skybox/hi-quality/stormydays.tga", false);
     
-    uint program = Ge.createProgram("test");
-    uint ps = Ge.loadShader("test","ps.glsl",GL_FRAGMENT_SHADER);
-    uint vs = Ge.loadShader("test","vs.glsl",GL_VERTEX_SHADER);
-    Ge.addShaderToProgram(ps,program);
-    Ge.addShaderToProgram(vs,program);
-    Ge.linkProgram(program);
+    uint programTexture = Ge.createProgram("test");
+    uint ps = Ge.loadShader("test","shaders/texture.frag",GL_FRAGMENT_SHADER);
+    uint vs = Ge.loadShader("test","shaders/texture.vert",GL_VERTEX_SHADER);
+    Ge.addShaderToProgram(ps,programTexture);
+    Ge.addShaderToProgram(vs,programTexture);
+    Ge.linkProgram(programTexture);
     
-    SolidLeaf* demon = new SolidLeaf(&Ge);
+    
+    uint programTexturePhong = Ge.createProgram("test");
+    ps = Ge.loadShader("test","shaders/texturePhong.frag",GL_FRAGMENT_SHADER);
+    vs = Ge.loadShader("test","shaders/texturePhong.vert",GL_VERTEX_SHADER);
+    Ge.addShaderToProgram(ps,programTexturePhong);
+    Ge.addShaderToProgram(vs,programTexturePhong);
+    Ge.linkProgram(programTexturePhong);
+    
+    Solid* demon = new Solid(&Ge);
     demon->mesh=meshDemon;
-    demon->program=program;
+    demon->program=programTexturePhong;
     demon->texture=textureDemon;
     
-    SolidLeaf* cube = new SolidLeaf(&Ge);
+    Solid* ile = new Solid(&Ge);
+    ile->mesh=meshIle;
+    ile->program=programTexturePhong;
+    ile->texture=textureIle;
+    
+    Solid* cube = new Solid(&Ge);
     cube->mesh=meshCube;
-    cube->program=program;
+    cube->program=programTexture;
     cube->texture=textureCube;
     
-    SolidComposite* scene = new SolidComposite(&Ge);
+    SceneComposite* scene = new SceneComposite(&Ge);
     scene->add(demon);
-    scene->add(cube);
+    scene->add(ile);
     
     float azimut = 0, elevation = 0, twist = 0;
     float camX = 0, camY = 0, camZ = 0;
@@ -78,48 +96,53 @@ int main(int argc, char* argv[], char* env[])
     bool mouseHidden = false;
     bool changeEscapeStatus = true;
     
+    double oldMonotime = glfwGetTime();
+    
     while( running )
     {
 	//struct timespec time;
 	//clock_gettime(CLOCK_MONOTONIC,&time);
         //double monoTime = time.tv_nsec / (double)1000000000.0f + time.tv_sec;
-        
-        
-	double monoTime = glfwGetTime();
+        double monoTime;
+        oldMonotime = monoTime;
+	monoTime = glfwGetTime();
+	
+	float distance = (monoTime - oldMonotime)*10;
+	
 	if( glfwGetKey('D') ==  GLFW_PRESS )
 	{
-	  camZ -= cos(-azimut/360.*2.*3.1415927+3.1415927/2.)*0.1;
-	  camX -= sin(-azimut/360.*2.*3.1415927+3.1415927/2.)*0.1;
+	  camZ -= cos(-azimut/360.*2.*M_PI+M_PI/2.)*distance;
+	  camX -= sin(-azimut/360.*2.*M_PI+M_PI/2.)*distance;
 	}
 	
 	if( glfwGetKey('Q') ==  GLFW_PRESS )
 	{
-	  camZ -= cos(-azimut/360.*2.*3.1415927-3.1415927/2.)*0.1;
-	  camX -= sin(-azimut/360.*2.*3.1415927-3.1415927/2.)*0.1;
+	  camZ -= cos(-azimut/360.*2.*M_PI-M_PI/2.)*distance;
+	  camX -= sin(-azimut/360.*2.*M_PI-M_PI/2.)*distance;
 	} 
 	
 	if( glfwGetKey('S') ==  GLFW_PRESS )
 	{
-	  camZ -= cos(-azimut/360.*2.*3.1415927)*cos(elevation/360.*2.*3.1415927)*0.1;
-	  camX -= sin(-azimut/360.*2.*3.1415927)*cos(elevation/360.*2.*3.1415927)*0.1;
-	  camY -= sin(elevation/360.*2.*3.1415927)*0.1;
+	  camZ -= cos(-azimut/360.*2.*M_PI)*cos(elevation/360.*2.*M_PI)*distance;
+	  camX -= sin(-azimut/360.*2.*M_PI)*cos(elevation/360.*2.*M_PI)*distance;
+	  camY -= sin(elevation/360.*2.*M_PI)*distance;
 	}
 	
 	if( glfwGetKey('Z') ==  GLFW_PRESS )
 	{
-	  camZ += cos(-azimut/360.*2.*3.1415927)*cos(elevation/360.*2.*3.1415927)*0.1;
-	  camX += sin(-azimut/360.*2.*3.1415927)*cos(elevation/360.*2.*3.1415927)*0.1;
-	  camY += sin(elevation/360.*2.*3.1415927)*0.1;
+	  camZ += cos(-azimut/360.*2.*M_PI)*cos(elevation/360.*2.*M_PI)*distance;
+	  camX += sin(-azimut/360.*2.*M_PI)*cos(elevation/360.*2.*M_PI)*distance;
+	  camY += sin(elevation/360.*2.*M_PI)*distance;
 	}
 	
 	if( glfwGetKey(GLFW_KEY_SPACE) ==  GLFW_PRESS )
 	{
-	  camY -= 0.1;
+	  camY -= distance;
 	}
 	
 	if( glfwGetKey(GLFW_KEY_LSHIFT) ==  GLFW_PRESS )
 	{
-	  camY += 0.1;
+	  camY += distance;
 	}
 	
 	if(glfwGetMouseButton(GLFW_MOUSE_BUTTON_LEFT))
@@ -166,23 +189,21 @@ int main(int argc, char* argv[], char* env[])
 	    elevation = -90;
 	}
 	
-	cout << "a: "<< azimut << " e: " << elevation << endl;
-	
 
 	
 	demon->identity();
-	demon->translate(0,0,0);
+	demon->translate(0,1,0);
+	demon->rotate((float)monoTime*50, 0, 1, 0);
+	
+	ile->identity();
+	ile->translate(0,0,0);
 	
 	cube->identity();
 	cube->translate(0,0,0);
 	cube->rotate(-90, 1, 0, 0);
 	cube->rotate((float)monoTime, 0, 0, 1);
-	//cube->scale(0.2f,0.2f,0.2f);
-	//cube->rotate((float)monoTime*600, 1, 0, 0);
 	
 	scene->identity();
-	scene->translate(0,0,-3);
-	scene->rotate((float)monoTime*00, 0, 1, 0);
 	
 	Ge.clearDepth();
 	Ge.camera.identity();
@@ -196,7 +217,7 @@ int main(int argc, char* argv[], char* env[])
 	Ge.camera.rotate(elevation,1,0,0);
 	Ge.camera.rotate(azimut,0,1,0);
 	Ge.camera.translate(camX,camY,camZ);
-	Ge.render(demon, monoTime);
+	Ge.render(scene, monoTime);
 	
         glfwSwapBuffers();
         running &= glfwGetWindowParam(GLFW_OPENED);

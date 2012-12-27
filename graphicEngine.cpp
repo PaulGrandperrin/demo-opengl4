@@ -11,10 +11,9 @@
 #include <sstream>
 
 #include <IL/il.h>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-
-#include <time.h> //a virer
+//#include <glm/gtc/matrix_transform.hpp>
+//#include <glm/gtc/type_ptr.hpp>
+#include <glm/ext.hpp>
 
 using namespace std;
 
@@ -25,17 +24,12 @@ GE::GE() : camera(this), lastID(0)
 
 void GE::init(uint width, uint height)
 {
-    this->width = width;
-    this->height = height;
-   
     glewExperimental=GL_TRUE;
     
     ilInit();
     
-    if(glewInit() != GLEW_OK)
+    if(GLIR(glewInit()) != GLEW_OK)
       exit(17);
-    
-    glGetError(); // Get rid off the error bug of glewInit()
     
     /*
     glEnable(GL_DEBUG_OUTPUT_ARB);
@@ -44,8 +38,7 @@ void GE::init(uint width, uint height)
     glDebugMessageCallbackARB(&debugOutput, NULL);
     */
     
-    GLC(glViewport (0, 0, width, height));
-    GLC(glClearColor(1, 0, 0, 1));
+    resize(width, height);
 }
 
 void GE::resize(uint width, uint height)
@@ -54,6 +47,9 @@ void GE::resize(uint width, uint height)
     this->height = height;
     
     GLC(glViewport (0, 0, width, height));
+    
+    projectionMatrix = glm::perspective(75.0f, this->width / (float) this->height, 0.001f, 10000.f);
+    GLC(glClearColor(0, 0, 0, 1)); 
 }
 
 void GE::clearDepth()
@@ -61,17 +57,14 @@ void GE::clearDepth()
   GLC(glClear(GL_DEPTH_BUFFER_BIT));
 }
 
-void GE::render(Solid* o, double time)
+void GE::render(SceneObject* o, double time)
 { 
     
     GLC(glEnable(GL_DEPTH_TEST));
     GLC(glDisable(GL_BLEND));
 
-    glm::mat4 mat = glm::perspective(75.0f, this->width / (float) this->height, 0.001f, 10000.f);
     
-    mat *= camera.modelMatrix;
-    
-    o->draw(mat);
+    o->draw(glm::mat4(1.f));
 
     GLC(glBindVertexArray(0));
     GLC(glUseProgram(0));
@@ -83,7 +76,7 @@ void GE::render(Solid* o, double time)
 }
 
 
-void GE::drawSolidLeaf(SolidLeaf* of, glm::mat4 mat)
+void GE::drawSolid(Solid* of, glm::mat4 mat)
 {
     mesh m = meshs[of->mesh];
     texture t = textures[of->texture];
@@ -91,8 +84,16 @@ void GE::drawSolidLeaf(SolidLeaf* of, glm::mat4 mat)
   
     GLC(glUseProgram(p.id));
     
-    GLuint projectionMatrixId = GLCR(glGetUniformLocation(p.id, "projectionMatrix" ));
-    GLC(glUniformMatrix4fv(projectionMatrixId, 1, 0, (GLfloat*) glm::value_ptr(mat)));
+    glm::vec4 camPos = glm::inverse(camera.transform) * glm::vec4(0, 0, 0, 1);
+    
+    glm::mat4 modelViewProjectionMatrix = projectionMatrix * camera.transform * mat;
+    glm::mat3 normalMatrix =  glm::mat3(mat);
+
+    
+    GLI(glUniform3f(CAMERA_UNIFORM, camPos.x, camPos.y, camPos.z));
+    GLC(glUniformMatrix4fv(MODELVIEWPROJECTIONMAT_UNIFORM, 1, 0, (GLfloat*) glm::value_ptr(modelViewProjectionMatrix)));
+    GLI(glUniformMatrix4fv(MODELMAT_UNIFORM, 1, 0, (GLfloat*) glm::value_ptr(mat)));
+    GLI(glUniformMatrix3fv(NORMALMAT_UNIFORM, 1, 0, (GLfloat*) glm::value_ptr(normalMatrix)));
     
     GLC(glBindVertexArray(m.VAO));
     
@@ -103,6 +104,11 @@ void GE::drawSolidLeaf(SolidLeaf* of, glm::mat4 mat)
   
 }
 
+
+void GE::positionLight(Light* l, glm::mat4 mat)
+{
+  
+}
 
 
 uint GE::loadMesh(string name, string filePath)
@@ -417,6 +423,8 @@ void GE::linkProgram(uint program)
 	
 	GLC(glLinkProgram(p));
 
+	//this->programs[program].modelViewProjectionMatrixID =
+	//    GLCR(glGetUniformLocation(p, "modelViewProjectionMatrix" ));
 	
 	GLint link_status = GL_TRUE;
 	GLint logsize=200;
@@ -439,7 +447,7 @@ void GE::linkProgram(uint program)
 
 }
 
-uint GE::loadTexture(string name, string filePath)
+uint GE::loadTexture(string name, string filePath, bool withMimaps)
 {
     
     ILuint ilID;
@@ -457,12 +465,20 @@ uint GE::loadTexture(string name, string filePath)
     GLC(glGenTextures(1,&glID));
     GLC(glBindTexture(GL_TEXTURE_2D,glID));
 
-    GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR));
-    GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
     GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
     GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
-    GLC(glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16));
     
+    if(withMimaps)
+    {
+      GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR));
+      GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+      GLC(glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 4));
+    }
+    else
+    {
+      GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+      GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+    }
 
     GLC(glTexImage2D(
         GL_TEXTURE_2D,
@@ -476,8 +492,11 @@ uint GE::loadTexture(string name, string filePath)
         ilGetData()
     ));
     
-    GLC(glHint(GL_GENERATE_MIPMAP_HINT, GL_NICEST));
-    GLC(glGenerateMipmap(GL_TEXTURE_2D));
+    if(withMimaps)
+    {
+      GLC(glHint(GL_GENERATE_MIPMAP_HINT, GL_NICEST));
+      GLC(glGenerateMipmap(GL_TEXTURE_2D));
+    }
     
     GE::texture t;
     t.id = glID;
@@ -496,46 +515,44 @@ uint GE::loadTexture(string name, string filePath)
 
 // -----------------------
 
-SceneObject::SceneObject(GE* ge): ge(ge) {}
-
+Object3D::Object3D(GE* ge): ge(ge) {}
+SceneObject::SceneObject(GE* ge): Object3D(ge) {}
+SceneComposite::SceneComposite(GE* ge): SceneObject(ge) {}
 Solid::Solid(GE* ge): SceneObject(ge) {}
-
-SolidComposite::SolidComposite(GE* ge): Solid(ge) {}
-
-SolidLeaf::SolidLeaf(GE* ge): Solid(ge) {}
+Light::Light(GE* ge): SceneObject(ge) {}
 
 
 // ----------------
 
 
-void SceneObject::rotate(float angle, float x, float y, float z)
+void Object3D::rotate(float angle, float x, float y, float z)
 {
-  modelMatrix = glm::rotate(modelMatrix,angle,glm::vec3(x, y, z));
+  transform = glm::rotate(transform,angle,glm::vec3(x, y, z));
 }
 
-void SceneObject::translate(float x, float y, float z)
+void Object3D::translate(float x, float y, float z)
 {
-  modelMatrix = glm::translate(modelMatrix,glm::vec3(x, y, z));
+  transform = glm::translate(transform,glm::vec3(x, y, z));
 }
 
-void SceneObject::scale(float x, float y, float z)
+void Object3D::scale(float x, float y, float z)
 {
-  modelMatrix = glm::scale(modelMatrix,glm::vec3(x, y, z));
+  transform = glm::scale(transform,glm::vec3(x, y, z));
 }
 
-void SceneObject::identity()
+void Object3D::identity()
 {
-  modelMatrix= glm::mat4(1.0f);
+  transform= glm::mat4(1.0f);
 }
 
 // -------------------------
 
-void SolidComposite::add(Solid* o)
+void SceneComposite::add(SceneObject* o)
 {
     children.push_front(o);
 }
 
-void SolidComposite::remove(Solid* o)
+void SceneComposite::remove(SceneObject* o)
 {
     children.remove(o);
 }
@@ -543,9 +560,9 @@ void SolidComposite::remove(Solid* o)
 //--------------------
 
 
-void SolidComposite::draw(glm::mat4 mat)
+void SceneComposite::draw(glm::mat4 mat)
 {
-  mat *= modelMatrix;
+  mat *= transform;
   for(auto it = children.begin(); it != children.end(); ++it)
   {
       (*it)->draw(mat);
@@ -553,9 +570,25 @@ void SolidComposite::draw(glm::mat4 mat)
 }
 
 
-void SolidLeaf::draw(glm::mat4 mat)
+void Solid::draw(glm::mat4 mat)
 {
-    mat *= modelMatrix;
-    ge->drawSolidLeaf(this, mat);
+    mat *= transform;
+    ge->drawSolid(this, mat);
 }
 
+// -----------------
+
+void SceneComposite::computeLightsPositions(glm::mat4 mat)
+{
+  mat *= transform;
+  for(auto it = children.begin(); it != children.end(); ++it)
+  {
+      (*it)->computeLightsPositions(mat);
+  }
+}
+
+
+void Light::computeLightsPositions(glm::mat4 mat)
+{
+  ge->positionLight(this, mat);
+}

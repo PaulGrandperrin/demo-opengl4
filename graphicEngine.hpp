@@ -7,7 +7,10 @@
 #include <string>
 
 #include <GL/glew.h>
+
+//#define GLM_FORCE_INLINE
 #include <glm/glm.hpp>
+
 
 
 /**
@@ -19,9 +22,13 @@
 #ifdef DEBUG
   #define GLC(stmt) {stmt;GE::GLCheckError(#stmt, __FILE__,__LINE__);}
   #define GLCR(stmt) [=]()->decltype(stmt){auto tmp=stmt;GE::GLCheckError(#stmt,__FILE__,__LINE__);return tmp;}()
+  #define GLI(stmt) {stmt;glGetError();}
+  #define GLIR(stmt) [=]()->decltype(stmt){auto tmp=stmt;glGetError();return tmp;}()
 #else
   #define GLC(stmt) stmt
   #define GLCR(stmt) stmt
+  #define GLI(stmt) stmt
+  #define GLIR(stmt) stmt
 #endif
 
   
@@ -117,59 +124,73 @@ namespace DSGE
 {
   
 class GE;
+
+class Object3D
+{
+public:
+  Object3D(GE* ge);
   
-class SceneObject
+  void rotate(float angle, float x, float y, float z);
+  void translate(float x, float y, float z);
+  void scale(float x, float y, float z);
+  void identity();
+  
+protected:
+  GE* ge;
+  glm::mat4 transform;
+  
+friend class GE;
+};
+  
+class SceneObject : public Object3D
 {
 public:
     SceneObject(GE* ge);
-    virtual ~SceneObject() = default;
     
-    void rotate(float angle, float x, float y, float z);
-    void translate(float x, float y, float z);
-    void scale(float x, float y, float z);
-    void identity();
-    
-protected:
-  GE* ge;
-  glm::mat4 modelMatrix;
+    virtual void draw(glm::mat4 mat) = 0;
+    virtual void computeLightsPositions(glm::mat4 mat) = 0;
   
-  friend class GE;
 };
 
-class Solid: public SceneObject
+class SceneComposite : public SceneObject
 {
 public:
-  Solid(GE* ge);
-  virtual void draw(glm::mat4 mat) = 0;
-};
-
-class SolidComposite : public Solid
-{
-public:
-  void add(Solid* o);
-  void remove(Solid* o);
+  SceneComposite(GE* ge);
   
-  SolidComposite(GE* ge);
+  void add(SceneObject* o);
+  void remove(SceneObject* o);
   
   virtual void draw(glm::mat4 mat);
+  virtual void computeLightsPositions(glm::mat4 mat);
   
 private:
-  list<Solid*> children;
+  list<SceneObject*> children;
   
 };
 
-class SolidLeaf : public Solid
+class Solid : public SceneObject
 {
 public:
   uint mesh;
   uint program;
   uint texture;
   
-  SolidLeaf(GE* ge);
+  Solid(GE* ge);
   
   virtual void draw(glm::mat4 mat);
+  virtual void computeLightsPositions(glm::mat4 mat) {}
 };
 
+class Light : public SceneObject
+{
+public:
+  // TODO add properties
+  
+  Light(GE* ge);
+  
+  virtual void draw(glm::mat4 mat) {}
+  virtual void computeLightsPositions(glm::mat4 mat);
+};
 
 class GE
 {
@@ -178,7 +199,7 @@ public:
 
     void init(uint width,uint height);
     void resize(uint width,uint height);
-    void render(Solid* o, double time);
+    void render(SceneObject* o, double time);
     void clearDepth();
 
     // FS Resource loaders
@@ -189,7 +210,7 @@ public:
     uint loadMesh(string name, string filePath);
     void unloadMesh(uint id);
     
-    uint loadTexture(string name, string filePath);
+    uint loadTexture(string name, string filePath, bool withMimaps);
     uint unloadTexture(uint id);
 
     // Shader program methods
@@ -259,7 +280,8 @@ private: // Class methods
     }
 
 public:
-    SceneObject camera;
+    Object3D camera;
+    glm::mat4 projectionMatrix;
 
     
 private:
@@ -269,7 +291,12 @@ private:
     {
       VERTEX_POSITION_ATTRIB = 0,
       VERTEX_NORMAL_ATTRIB = 1,
-      VERTEX_TEXTCOORD_ATTRIB = 2
+      VERTEX_TEXTCOORD_ATTRIB = 2,
+      MODELVIEWPROJECTIONMAT_UNIFORM = 3,
+      CAMERA_UNIFORM = 4,
+      LIGHTS_UNIFORM = 5,
+      NORMALMAT_UNIFORM = 6,
+      MODELMAT_UNIFORM = 7
     };
     
     struct Resource
@@ -335,10 +362,12 @@ private:
     
     
 private:
-    friend class SolidLeaf;
+    friend class SceneObject;
+    friend class SceneComposite;
     friend class Solid;
-    friend class SolidComposite;
-    void drawSolidLeaf(SolidLeaf* of, glm::mat4 mat);
+    friend class Light;
+    void drawSolid(Solid* of, glm::mat4 mat);
+    void positionLight(Light* l, glm::mat4 mat);
 };
 
 
