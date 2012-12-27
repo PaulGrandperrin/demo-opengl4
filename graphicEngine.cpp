@@ -39,6 +39,12 @@ void GE::init(uint width, uint height)
     */
     
     resize(width, height);
+    
+    GLC(glEnable(GL_CULL_FACE));
+    GLC(glCullFace(GL_BACK));
+    GLC(glEnable(GL_DEPTH_TEST));
+    GLC(glEnable(GL_TEXTURE_2D));
+    GLC(glDisable(GL_BLEND));
 }
 
 void GE::resize(uint width, uint height)
@@ -60,8 +66,6 @@ void GE::clearDepth()
 void GE::render(SceneObject* o, double time)
 { 
     
-    GLC(glEnable(GL_DEPTH_TEST));
-    GLC(glDisable(GL_BLEND));
 
     
     o->draw(glm::mat4(1.f));
@@ -472,7 +476,7 @@ uint GE::loadTexture(string name, string filePath, bool withMimaps)
     {
       GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR));
       GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
-      GLC(glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 4));
+      GLC(glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16));
     }
     else
     {

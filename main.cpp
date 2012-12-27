@@ -30,7 +30,7 @@ int main(int argc, char* argv[], char* env[])
     glfwOpenWindowHint(GLFW_OPENGL_VERSION_MINOR,3);
     glfwOpenWindowHint(GLFW_OPENGL_PROFILE,GLFW_OPENGL_CORE_PROFILE);
     //glfwOpenWindowHint(GLFW_OPENGL_FORWARD_COMPAT,GL_TRUE);
-    //glfwOpenWindowHint(GLFW_FSAA_SAMPLES,16);
+    glfwOpenWindowHint(GLFW_FSAA_SAMPLES,16);
     
     glfwEnable(GLFW_STICKY_KEYS);
 
