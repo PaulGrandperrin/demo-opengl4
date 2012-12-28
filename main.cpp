@@ -46,11 +46,11 @@ int main(int argc, char* argv[], char* env[])
     
     Ge.init(640,480);
     
-    uint meshDemon = Ge.loadMesh("test","meshes/demon.obj");
+    uint meshDemon = Ge.loadMesh("test","meshes/skeleton.obj");
     uint meshIle = Ge.loadMesh("test","meshes/ile.obj");
     uint meshCube = Ge.loadMesh("test","meshes/cube.obj");
     
-    uint textureDemon = Ge.loadTexture("test","textures/demon.png", true);
+    uint textureDemon = Ge.loadTexture("test","textures/bone.tga", true);
     uint textureIle = Ge.loadTexture("test","textures/ile.png", true);
     uint textureCube = Ge.loadTexture("test","textures/skybox/hi-quality/stormydays.tga", false);
     
@@ -69,23 +69,79 @@ int main(int argc, char* argv[], char* env[])
     Ge.addShaderToProgram(vs,programTexturePhong);
     Ge.linkProgram(programTexturePhong);
     
-    Solid* demon = new Solid(&Ge);
-    demon->mesh=meshDemon;
-    demon->program=programTexturePhong;
-    demon->texture=textureDemon;
+    Light* light1 = new Light(&Ge);
+    light1->identity();
+    light1->translate(-15,-15,-10);
+    light1->color=glm::vec4(1,0,0,1);
+    light1->radius = 45;
+    
+    Light* light2 = new Light(&Ge);
+    light2->identity();
+    light2->translate(15,-15,-10);
+    light2->color=glm::vec4(0,1,0,1);
+    light2->radius=45;
+    
+    Light* light3 = new Light(&Ge);
+    light3->identity();
+    light3->translate(0,-15,15);
+    light3->color=glm::vec4(0,0,1,1);
+    light3->radius=45;
+    
+    
+    Light* light4 = new Light(&Ge);
+    light4->identity();
+    light4->translate(-15,15,-10);
+    light4->color=glm::vec4(1,0,0,1);
+    light4->radius = 45;
+    
+    Light* light5 = new Light(&Ge);
+    light5->identity();
+    light5->translate(15,15,-10);
+    light5->color=glm::vec4(0,1,0,1);
+    light5->radius=45;
+    
+    Light* light6 = new Light(&Ge);
+    light6->identity();
+    light6->translate(0,15,15);
+    light6->color=glm::vec4(0,0,1,1);
+    light6->radius=45;
+    
+    SceneComposite* lightsA = new SceneComposite(&Ge);
+    lightsA->identity();
+    lightsA->add(light1);
+    lightsA->add(light2);
+    lightsA->add(light3);
+    
+    SceneComposite* lightsB = new SceneComposite(&Ge);
+    lightsB->identity();
+    lightsB->add(light4);
+    lightsB->add(light5);
+    lightsB->add(light6);
+    
+    Solid* skeleton = new Solid(&Ge);
+    skeleton->identity();
+    skeleton->mesh=meshDemon;
+    skeleton->program=programTexturePhong;
+    skeleton->texture=textureDemon;
     
     Solid* ile = new Solid(&Ge);
+    ile->identity();
+    ile->translate(0,-43.5,0);
     ile->mesh=meshIle;
     ile->program=programTexturePhong;
     ile->texture=textureIle;
     
     Solid* cube = new Solid(&Ge);
+    cube->identity();
     cube->mesh=meshCube;
     cube->program=programTexture;
     cube->texture=textureCube;
     
     SceneComposite* scene = new SceneComposite(&Ge);
-    scene->add(demon);
+    scene->identity();
+    scene->add(skeleton);
+    scene->add(lightsA);
+    scene->add(lightsB);
     scene->add(ile);
     
     float azimut = 0, elevation = 0, twist = 0;
@@ -97,6 +153,7 @@ int main(int argc, char* argv[], char* env[])
     bool changeEscapeStatus = true;
     
     double oldMonotime = glfwGetTime();
+   
     
     while( running )
     {
@@ -191,12 +248,13 @@ int main(int argc, char* argv[], char* env[])
 	
 
 	
-	demon->identity();
-	demon->translate(0,1,0);
-	demon->rotate((float)monoTime*50, 0, 1, 0);
+	skeleton->identity();
 	
-	ile->identity();
-	ile->translate(0,0,0);
+	lightsA->identity();
+	lightsA->rotate((float)monoTime*50, 0, 1, 0);
+	
+	lightsB->identity();
+	lightsB->rotate(-(float)monoTime*50, 0, 1, 0);
 	
 	cube->identity();
 	cube->translate(0,0,0);
@@ -204,6 +262,7 @@ int main(int argc, char* argv[], char* env[])
 	cube->rotate((float)monoTime, 0, 0, 1);
 	
 	scene->identity();
+	//scene->rotate((float)monoTime*50, 0, 1, 0);
 	
 	Ge.clearDepth();
 	Ge.camera.identity();
@@ -217,6 +276,7 @@ int main(int argc, char* argv[], char* env[])
 	Ge.camera.rotate(elevation,1,0,0);
 	Ge.camera.rotate(azimut,0,1,0);
 	Ge.camera.translate(camX,camY,camZ);
+	
 	Ge.render(scene, monoTime);
 	
         glfwSwapBuffers();

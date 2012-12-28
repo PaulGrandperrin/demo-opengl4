@@ -55,13 +55,13 @@ using namespace std;
  *      Frustrum culling with octree and mesh bunding and occlusion queries
  * 
  * 
- * 	VA
- * 	VBO
- * 	IBO
- * 	VAO
+ * 	VA  //no
+ * 	VBO //yes
+ * 	IBO //yes
+ * 	VAO //yes
  * 	FBO
- * 	TBO //nan
- * 	UBO
+ * 	TBO //no
+ * 	UBO //yes
  * 	PBO
  * 	
  * 
@@ -190,6 +190,9 @@ public:
   
   virtual void draw(glm::mat4 mat) {}
   virtual void computeLightsPositions(glm::mat4 mat);
+
+  glm::vec4 color;
+  float radius;
 };
 
 class GE
@@ -281,8 +284,6 @@ private: // Class methods
 
 public:
     Object3D camera;
-    glm::mat4 projectionMatrix;
-
     
 private:
     uint lastID;
@@ -292,12 +293,18 @@ private:
       VERTEX_POSITION_ATTRIB = 0,
       VERTEX_NORMAL_ATTRIB = 1,
       VERTEX_TEXTCOORD_ATTRIB = 2,
-      MODELVIEWPROJECTIONMAT_UNIFORM = 3,
-      CAMERA_UNIFORM = 4,
-      LIGHTS_UNIFORM = 5,
-      NORMALMAT_UNIFORM = 6,
-      MODELMAT_UNIFORM = 7
     };
+    
+    enum
+    {
+      MODELMAT_UNIFORM = 0,
+      MODELVIEWMAT_UNIFORM = 1,
+      MODELVIEWPROJECTIONMAT_UNIFORM = 2,
+      NORMALMAT_UNIFORM = 3,
+      CAMERA_UNIFORM = 4 
+    };
+    
+    enum{LIGHTSUBBP = 1}; // Lights Uniform Buffer Binding Pointer
     
     struct Resource
     {
@@ -351,6 +358,7 @@ private:
     struct program : Resource
     {
         GLuint id;
+	GLint lightsBlockIndex;
     };
 
     map<uint, shader>   shaders;
@@ -359,6 +367,11 @@ private:
     // --------------
     
     uint width, height;
+    
+    glm::mat4 projectionMatrix;
+    GLuint lightsUBO;
+    float lights[4*2*10];
+    uint nbLights;
     
     
 private:

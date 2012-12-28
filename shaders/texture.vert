@@ -4,7 +4,7 @@ precision highp float;
 layout(location = 0) in vec3 vertexPosition;
 layout(location = 2) in vec2 vertexTexture;
 
-layout(location = 3) uniform mat4 modelViewProjectionMatrix;
+layout(location = 2) uniform mat4 modelViewProjectionMatrix;
 
 smooth out vec2 texCoord;
 

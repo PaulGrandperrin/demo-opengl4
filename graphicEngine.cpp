@@ -45,6 +45,20 @@ void GE::init(uint width, uint height)
     GLC(glEnable(GL_DEPTH_TEST));
     GLC(glEnable(GL_TEXTURE_2D));
     GLC(glDisable(GL_BLEND));
+    
+    
+    // create lights UBO
+    GLC(glGenBuffers(1, &lightsUBO));
+    GLC(glBindBuffer(GL_UNIFORM_BUFFER, lightsUBO));
+//     GLint UniformBufferOffsetAlignment;
+//     glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT,&UniformBufferOffsetAlignment);
+//     GLint UniformBufferOffset = glm::max(UniformBufferOffsetAlignment, 4);
+    // TODO use UniformBufferOffset
+    GLC(glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::vec4)*2*10, nullptr, GL_STREAM_DRAW));
+    GLC(glBindBuffer(GL_UNIFORM_BUFFER, 0));
+    
+    GLC(glBindBufferRange(GL_UNIFORM_BUFFER, LIGHTSUBBP, lightsUBO, 0, sizeof(glm::vec4) *2* 10));
+    
 }
 
 void GE::resize(uint width, uint height)
@@ -65,8 +79,19 @@ void GE::clearDepth()
 
 void GE::render(SceneObject* o, double time)
 { 
+    nbLights = 0;
+    o->computeLightsPositions(glm::mat4(1.f));
     
-
+    for(int i=nbLights; i<10; ++i)
+    {
+      lights[i*4+3]=0;
+    }
+    
+    
+    GLC(glBindBuffer(GL_UNIFORM_BUFFER, lightsUBO));
+    GLC(glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::vec4)*2*10, lights));
+    GLC(glBindBuffer(GL_UNIFORM_BUFFER, 0));
+    
     
     o->draw(glm::mat4(1.f));
 
@@ -111,7 +136,20 @@ void GE::drawSolid(Solid* of, glm::mat4 mat)
 
 void GE::positionLight(Light* l, glm::mat4 mat)
 {
-  
+    if(nbLights == 10)
+      return;
+    
+    glm::vec4 lightPos = mat * glm::vec4(0, 0, 0, 1);
+    lights[nbLights*4+0]=lightPos.x;
+    lights[nbLights*4+1]=lightPos.y;
+    lights[nbLights*4+2]=lightPos.z;
+    lights[nbLights*4+3]=l->radius;
+    
+    lights[10*4+nbLights*4+0]=l->color.r;
+    lights[10*4+nbLights*4+1]=l->color.g;
+    lights[10*4+nbLights*4+2]=l->color.b;
+    lights[10*4+nbLights*4+3]=l->color.a;
+    nbLights++;
 }
 
 
@@ -169,11 +207,21 @@ uint GE::loadMesh(string name, string filePath)
         return 0;
     
     string buffer, key;
+
+    int progress=0;
+    
+    struct stat filestatus;
+    stat( filePath.c_str(), &filestatus );
+
+    int fileSize = filestatus.st_size;
+    
+    cout << "Loading mesh : " << filePath << endl;
+    
     while(getline(file, buffer))
     {
         istringstream line(buffer);
         key = "";
-        line >> key;
+        line >> key;	
         
         if(key == "v")
         {
@@ -234,7 +282,15 @@ uint GE::loadMesh(string name, string filePath)
             }
             triangles.push_back(t);
         }
+        
+        if(progress%100 == 0)
+	{
+	    printf("%3.2f%%\t\r",file.tellg()/(float)fileSize*100);
+	}
+        progress++;
     }
+
+    cout << "100.00%         "<<endl;
     
     file.close();
 
@@ -291,8 +347,8 @@ uint GE::loadMesh(string name, string filePath)
     free(vertexArray);
     free(indexArray);
 
-    cout << "vertexCount: " << vertices.size() << endl;
-    cout << "triangleCount: " << triangles.size() << endl;
+    cout << "vertex count: " << vertices.size() << endl;
+    cout << "triangle count: " << triangles.size() << endl<<endl;
     
     
     GLuint VAO;
@@ -316,7 +372,7 @@ uint GE::loadMesh(string name, string filePath)
     // Get file inode number
     struct stat sb;
     stat(filePath.c_str(), &sb);
-    cout << sb.st_ino << endl;
+    //cout << sb.st_ino << endl;
     
     // TODO save inode
     
@@ -348,7 +404,7 @@ uint GE::loadShader(string name, string filePath, GLenum type)
 	string src,line;
 	
 	while(getline(file,line))
-		src+="\n"+line; //TODO replace "\n" by endl
+		src+="\n"+line;
 	
 	file.close();
 
@@ -416,8 +472,7 @@ void GE::addShaderToProgram(uint shader, uint program)
 	
 void GE::linkProgram(uint program)
 {
-	GLuint p;
-	p = this->programs[program].id;
+	GE::program* p = &(this->programs[program]);
 	
 	/*
 	GLC(glBindAttribLocation(p, VERTEX_POSITION_ATTRIB, "in_position"));
@@ -425,27 +480,33 @@ void GE::linkProgram(uint program)
 	GLC(glBindAttribLocation(p, VERTEX_TEXTCOORD_ATTRIB, "in_textCoord"));
 	*/
 	
-	GLC(glLinkProgram(p));
+	GLC(glLinkProgram(p->id));
 
 	//this->programs[program].modelViewProjectionMatrixID =
 	//    GLCR(glGetUniformLocation(p, "modelViewProjectionMatrix" ));
+	
+	p->lightsBlockIndex =
+	    GLCR(glGetUniformBlockIndex(p->id, "lights"));
+	
+	if(p->lightsBlockIndex >= 0)
+	    GLC(glUniformBlockBinding(p->id, p->lightsBlockIndex, LIGHTSUBBP));
 	
 	GLint link_status = GL_TRUE;
 	GLint logsize=200;
 	char* log;
 	
-	GLC(glGetProgramiv(p, GL_LINK_STATUS, &link_status));
+	GLC(glGetProgramiv(p->id, GL_LINK_STATUS, &link_status));
 	if(link_status != GL_TRUE)
 	{
-		GLC(glGetProgramiv(p, GL_INFO_LOG_LENGTH, &logsize));
+		GLC(glGetProgramiv(p->id, GL_INFO_LOG_LENGTH, &logsize));
 		log = (char*)malloc(logsize + 1);
 
-		GLC(glGetProgramInfoLog(p, logsize, &logsize, log));
+		GLC(glGetProgramInfoLog(p->id, logsize, &logsize, log));
 
 		cout << endl<< "Error while linking:"<< endl << log << endl;
 
 		free ( log );
-		GLC(glDeleteProgram(p));
+		GLC(glDeleteProgram(p->id));
 		exit(-1);
 	}
 
@@ -471,6 +532,9 @@ uint GE::loadTexture(string name, string filePath, bool withMimaps)
 
     GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
     GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
+    
+    GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT));
+    GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT));
     
     if(withMimaps)
     {
@@ -594,5 +658,6 @@ void SceneComposite::computeLightsPositions(glm::mat4 mat)
 
 void Light::computeLightsPositions(glm::mat4 mat)
 {
+  mat *= transform;
   ge->positionLight(this, mat);
 }
