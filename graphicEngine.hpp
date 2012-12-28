@@ -181,6 +181,8 @@ public:
   virtual void computeLightsPositions(glm::mat4 mat) {}
 };
 
+#define NBLIGHTS 10
+
 class Light : public SceneObject
 {
 public:
@@ -370,7 +372,7 @@ private:
     
     glm::mat4 projectionMatrix;
     GLuint lightsUBO;
-    float lights[4*2*10];
+    float lights[4*2*NBLIGHTS];
     uint nbLights;
     
     

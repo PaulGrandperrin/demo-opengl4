@@ -50,14 +50,10 @@ void GE::init(uint width, uint height)
     // create lights UBO
     GLC(glGenBuffers(1, &lightsUBO));
     GLC(glBindBuffer(GL_UNIFORM_BUFFER, lightsUBO));
-//     GLint UniformBufferOffsetAlignment;
-//     glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT,&UniformBufferOffsetAlignment);
-//     GLint UniformBufferOffset = glm::max(UniformBufferOffsetAlignment, 4);
-    // TODO use UniformBufferOffset
-    GLC(glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::vec4)*2*10, nullptr, GL_STREAM_DRAW));
+    GLC(glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::vec4)*2*NBLIGHTS, nullptr, GL_STREAM_DRAW));
     GLC(glBindBuffer(GL_UNIFORM_BUFFER, 0));
     
-    GLC(glBindBufferRange(GL_UNIFORM_BUFFER, LIGHTSUBBP, lightsUBO, 0, sizeof(glm::vec4) *2* 10));
+    GLC(glBindBufferRange(GL_UNIFORM_BUFFER, LIGHTSUBBP, lightsUBO, 0, sizeof(glm::vec4) *2* NBLIGHTS));
     
 }
 
@@ -82,14 +78,14 @@ void GE::render(SceneObject* o, double time)
     nbLights = 0;
     o->computeLightsPositions(glm::mat4(1.f));
     
-    for(int i=nbLights; i<10; ++i)
+    for(int i=nbLights; i<NBLIGHTS; ++i)
     {
       lights[i*4+3]=0;
     }
     
     
     GLC(glBindBuffer(GL_UNIFORM_BUFFER, lightsUBO));
-    GLC(glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::vec4)*2*10, lights));
+    GLC(glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::vec4)*2*NBLIGHTS, lights));
     GLC(glBindBuffer(GL_UNIFORM_BUFFER, 0));
     
     
@@ -136,7 +132,7 @@ void GE::drawSolid(Solid* of, glm::mat4 mat)
 
 void GE::positionLight(Light* l, glm::mat4 mat)
 {
-    if(nbLights == 10)
+    if(nbLights == NBLIGHTS)
       return;
     
     glm::vec4 lightPos = mat * glm::vec4(0, 0, 0, 1);
@@ -145,10 +141,10 @@ void GE::positionLight(Light* l, glm::mat4 mat)
     lights[nbLights*4+2]=lightPos.z;
     lights[nbLights*4+3]=l->radius;
     
-    lights[10*4+nbLights*4+0]=l->color.r;
-    lights[10*4+nbLights*4+1]=l->color.g;
-    lights[10*4+nbLights*4+2]=l->color.b;
-    lights[10*4+nbLights*4+3]=l->color.a;
+    lights[NBLIGHTS*4+nbLights*4+0]=l->color.r;
+    lights[NBLIGHTS*4+nbLights*4+1]=l->color.g;
+    lights[NBLIGHTS*4+nbLights*4+2]=l->color.b;
+    lights[NBLIGHTS*4+nbLights*4+3]=l->color.a;
     nbLights++;
 }
 

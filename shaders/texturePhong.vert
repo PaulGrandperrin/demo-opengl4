@@ -1,4 +1,6 @@
 #version 430 core
+#define NBLIGHTS 10
+
 precision highp float;
 
 layout(location = 0) in vec3 vertexPosition;
@@ -13,14 +15,14 @@ layout(location = 4) uniform vec3 cameraPos;
 
 layout(std140) uniform lights
 {
-  vec4 lightsPos[10];
-  vec4 lightsColors[10];
+  vec4 lightsPos[NBLIGHTS];
+  vec4 lightsColors[NBLIGHTS];
 };
 
 smooth out vec2 texCoord;
 
 smooth out vec3 normalVec;
-smooth out vec4 lightVec[10];
+smooth out vec4 lightVec[NBLIGHTS];
 smooth out vec3 cameraVec;
 
 
@@ -32,7 +34,7 @@ void main()
 	cameraVec = normalize(cameraPos - modelPosition.xyz);
 	normalVec = normalize(normalMatrix * vertexNormal);
 	
-	for(int i=0; i<10; ++i)
+	for(int i=0; i<NBLIGHTS; ++i)
 	{
 	  lightVec[i] = vec4(normalize(lightsPos[i].xyz - modelPosition.xyz), max(0,lightsPos[i][3]-distance(lightsPos[i].xyz,modelPosition.xyz))/lightsPos[i][3]);
 	}
