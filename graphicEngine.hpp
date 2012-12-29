@@ -36,7 +36,7 @@ using namespace std;
 
 /** TODO
  *  Fonctionnalities:
- *      Bling-Phonon lights
+ *      Phong lights
  *      Sample Distribution Shadow Maps
  *      Real-time cube map reflexions implemented with geometry shaders
  *      Key-Frame based animations
@@ -59,10 +59,11 @@ using namespace std;
  * 	VBO //yes
  * 	IBO //yes
  * 	VAO //yes
- * 	FBO
+ * 	FBO //TODO
  * 	TBO //no
  * 	UBO //yes
- * 	PBO
+ * 	PBO //NO
+ * 	RBO // ???
  * 	
  * 
  * 	change GLEW
@@ -374,6 +375,7 @@ private:
     GLuint lightsUBO;
     float lights[4*2*NBLIGHTS];
     uint nbLights;
+    
     
     
 private:

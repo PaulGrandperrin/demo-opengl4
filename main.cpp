@@ -128,7 +128,7 @@ int main(int argc, char* argv[], char* env[])
     ile->identity();
     ile->translate(0,-43.5,0);
     ile->mesh=meshIle;
-    ile->program=programTexturePhong;
+    ile->program=programTexture;
     ile->texture=textureIle;
     
     Solid* cube = new Solid(&Ge);

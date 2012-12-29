@@ -9,6 +9,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <math.h>
 
 #include <IL/il.h>
 //#include <glm/gtc/matrix_transform.hpp>
@@ -525,17 +526,33 @@ uint GE::loadTexture(string name, string filePath, bool withMimaps)
     
     GLC(glGenTextures(1,&glID));
     GLC(glBindTexture(GL_TEXTURE_2D,glID));
-
-    GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
-    GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
     
-    GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT));
-    GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT));
+    int mipmapLevels = floor(log2(glm::max(ilGetInteger(IL_IMAGE_WIDTH),ilGetInteger(IL_IMAGE_HEIGHT)))+1);
+    
+    GLC(glTexStorage2D(GL_TEXTURE_2D, withMimaps?mipmapLevels:1, GL_RGBA8, ilGetInteger(IL_IMAGE_WIDTH), ilGetInteger(IL_IMAGE_HEIGHT)));
+    
+    GLC(glTexSubImage2D(
+        GL_TEXTURE_2D,
+        0,
+	0,
+        0,
+        ilGetInteger(IL_IMAGE_WIDTH),
+        ilGetInteger(IL_IMAGE_HEIGHT),
+        ilGetInteger(IL_IMAGE_FORMAT),
+        GL_UNSIGNED_BYTE,
+        ilGetData()
+    ));
+    
     
     if(withMimaps)
     {
+      GLC(glHint(GL_GENERATE_MIPMAP_HINT, GL_NICEST));
+      GLC(glGenerateMipmap(GL_TEXTURE_2D));
+      
       GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR));
       GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+      GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0));
+      GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, mipmapLevels));
       GLC(glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16));
     }
     else
@@ -543,24 +560,9 @@ uint GE::loadTexture(string name, string filePath, bool withMimaps)
       GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
       GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
     }
-
-    GLC(glTexImage2D(
-        GL_TEXTURE_2D,
-        0,
-        GL_RGBA8,
-        ilGetInteger(IL_IMAGE_WIDTH),
-        ilGetInteger(IL_IMAGE_HEIGHT),
-        0,
-        ilGetInteger(IL_IMAGE_FORMAT),
-        GL_UNSIGNED_BYTE,
-        ilGetData()
-    ));
     
-    if(withMimaps)
-    {
-      GLC(glHint(GL_GENERATE_MIPMAP_HINT, GL_NICEST));
-      GLC(glGenerateMipmap(GL_TEXTURE_2D));
-    }
+    GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT));
+    GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT));
     
     GE::texture t;
     t.id = glID;
