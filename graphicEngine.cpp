@@ -529,7 +529,8 @@ uint GE::loadTexture(string name, string filePath, bool withMimaps)
     
     int mipmapLevels = floor(log2(glm::max(ilGetInteger(IL_IMAGE_WIDTH),ilGetInteger(IL_IMAGE_HEIGHT)))+1);
     
-    GLC(glTexStorage2D(GL_TEXTURE_2D, withMimaps?mipmapLevels:1, GL_RGBA8, ilGetInteger(IL_IMAGE_WIDTH), ilGetInteger(IL_IMAGE_HEIGHT)));
+    GLC(glHint(GL_TEXTURE_COMPRESSION_HINT, GL_NICEST));
+    GLC(glTexStorage2D(GL_TEXTURE_2D, withMimaps?mipmapLevels:1, GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, ilGetInteger(IL_IMAGE_WIDTH), ilGetInteger(IL_IMAGE_HEIGHT)));
     
     GLC(glTexSubImage2D(
         GL_TEXTURE_2D,
