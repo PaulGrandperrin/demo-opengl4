@@ -205,7 +205,8 @@ public:
 
     void init(uint width,uint height);
     void resize(uint width,uint height);
-    void render(SceneObject* o, double time);
+    void render(DSGE::SceneObject* o); // TODO let choose which framebuffer
+    void renderPostFX(uint program); // TODO allow to render on an offscreen framebuffer
     void clearDepth();
 
     // FS Resource loaders
@@ -225,6 +226,7 @@ public:
     void addShaderToProgram(uint shader, uint program);
     void linkProgram(uint program);
     void deleteProgram(uint id);
+    
     
     
     // Memory management
@@ -367,6 +369,7 @@ private:
     map<uint, shader>   shaders;
     map<uint, program>  programs;
 
+
     // --------------
     
     uint width, height;
@@ -375,6 +378,16 @@ private:
     GLuint lightsUBO;
     float lights[4*2*NBLIGHTS];
     uint nbLights;
+    
+    
+    // Post FX
+    
+    GLuint offscreenFBO;
+    GLuint offscreenVAO;
+    GLuint offscreenVBO;
+    GLuint offscreenIBO;
+    GLuint offscreenColorTex;
+    GLuint offscreenDepthTex;
     
     
     

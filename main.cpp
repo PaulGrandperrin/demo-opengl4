@@ -41,10 +41,11 @@ int main(int argc, char* argv[], char* env[])
     cout << glGetString(GL_VERSION) <<endl;
     
     glfwSetWindowTitle("OpenGL Demo");
-    glfwSetWindowSizeCallback(&resize);
     glfwSwapInterval(1);
     
     Ge.init(640,480);
+    
+    glfwSetWindowSizeCallback(&resize);
     
     uint meshDemon = Ge.loadMesh("test","meshes/skeleton.obj");
     uint meshIle = Ge.loadMesh("test","meshes/ile.obj");
@@ -60,14 +61,21 @@ int main(int argc, char* argv[], char* env[])
     Ge.addShaderToProgram(ps,programTexture);
     Ge.addShaderToProgram(vs,programTexture);
     Ge.linkProgram(programTexture);
-    
-    
+
     uint programTexturePhong = Ge.createProgram("test");
     ps = Ge.loadShader("test","shaders/texturePhong.frag",GL_FRAGMENT_SHADER);
     vs = Ge.loadShader("test","shaders/texturePhong.vert",GL_VERTEX_SHADER);
     Ge.addShaderToProgram(ps,programTexturePhong);
     Ge.addShaderToProgram(vs,programTexturePhong);
     Ge.linkProgram(programTexturePhong);
+
+    uint programCelShading = Ge.createProgram("test");
+    ps = Ge.loadShader("test","shaders/postFX/celShading.frag",GL_FRAGMENT_SHADER);
+    vs = Ge.loadShader("test","shaders/postFX/celShading.vert",GL_VERTEX_SHADER);
+    Ge.addShaderToProgram(ps,programCelShading);
+    Ge.addShaderToProgram(vs,programCelShading);
+    Ge.linkProgram(programCelShading);
+    
     
     Light* light1 = new Light(&Ge);
     light1->identity();
@@ -268,7 +276,7 @@ int main(int argc, char* argv[], char* env[])
 	Ge.camera.identity();
 	Ge.camera.rotate(elevation,1,0,0);
 	Ge.camera.rotate(azimut,0,1,0);
-	Ge.render(cube, monoTime);
+	Ge.render(cube);
 	
 	
 	Ge.clearDepth();
@@ -277,7 +285,10 @@ int main(int argc, char* argv[], char* env[])
 	Ge.camera.rotate(azimut,0,1,0);
 	Ge.camera.translate(camX,camY,camZ);
 	
-	Ge.render(scene, monoTime);
+	Ge.render(scene);
+	
+	Ge.clearDepth();
+	Ge.renderPostFX(programCelShading);
 	
         glfwSwapBuffers();
         running &= glfwGetWindowParam(GLFW_OPENED);

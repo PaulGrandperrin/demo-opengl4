@@ -20,6 +20,7 @@ using namespace std;
 
 using namespace DSGE;
 
+
 GE::GE() : camera(this), lastID(0)
 {}
 
@@ -39,14 +40,16 @@ void GE::init(uint width, uint height)
     glDebugMessageCallbackARB(&debugOutput, NULL);
     */
     
-    resize(width, height);
     
     GLC(glEnable(GL_CULL_FACE));
     GLC(glCullFace(GL_BACK));
     GLC(glEnable(GL_DEPTH_TEST));
-    GLC(glEnable(GL_TEXTURE_2D));
     GLC(glDisable(GL_BLEND));
+    GLC(glEnable(GL_MULTISAMPLE));
     
+    GLC(glHint(GL_LINE_SMOOTH_HINT, GL_NICEST));
+    GLC(glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST));
+    GLC(glHint(GL_TEXTURE_COMPRESSION_HINT, GL_NICEST));
     
     // create lights UBO
     GLC(glGenBuffers(1, &lightsUBO));
@@ -56,6 +59,48 @@ void GE::init(uint width, uint height)
     
     GLC(glBindBufferRange(GL_UNIFORM_BUFFER, LIGHTSUBBP, lightsUBO, 0, sizeof(glm::vec4) *2* NBLIGHTS));
     
+    
+    
+    
+    // create offline rectangle
+    
+    GLfloat offscreenRectVertex[4*(2+2)] =
+    {
+	    -1.0f,-1.0f,	0.0f, 0.0f,
+	    1.0f,-1.0f,		1.0f, 0.0f,
+	    1.0f, 1.0f,		1.0f, 1.0f,
+	    -1.0f, 1.0f,	0.0f, 1.0f
+    };
+
+    GLuint offscreenRectIndex[2 * 3] =
+    {
+	    0, 1, 2, 
+	    2, 3, 0
+    };
+    
+    GLC(glGenVertexArrays(1, &offscreenVAO));
+    GLC(glBindVertexArray(offscreenVAO));
+    
+    GLC(glGenBuffers(1, &offscreenVBO));
+    GLC(glBindBuffer(GL_ARRAY_BUFFER, offscreenVBO));
+    GLC(glBufferData(GL_ARRAY_BUFFER, 4 * (2 + 2) * sizeof(GLfloat), offscreenRectVertex, GL_STATIC_DRAW));
+    GLC(glEnableVertexAttribArray(VERTEX_POSITION_ATTRIB));
+    
+    GLC(glGenBuffers(1, &offscreenIBO));
+    GLC(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,offscreenIBO));
+    GLC(glBufferData(GL_ELEMENT_ARRAY_BUFFER,2 * 3 * sizeof(GLuint), offscreenRectIndex, GL_STATIC_DRAW));
+    GLC(glEnableVertexAttribArray(VERTEX_TEXTCOORD_ATTRIB));
+    
+    GLC(glVertexAttribPointer(VERTEX_POSITION_ATTRIB, 2, GL_FLOAT,GL_FALSE, 16, ( char * ) NULL + 0 ));
+    GLC(glVertexAttribPointer(VERTEX_TEXTCOORD_ATTRIB, 2, GL_FLOAT, GL_FALSE, 16, ( char * ) NULL + 8 ));
+
+    GLC(glBindVertexArray(0));
+    GLC(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0));
+    GLC(glBindBuffer(GL_ARRAY_BUFFER, 0));
+    
+     // create FBO
+    glGenFramebuffers(1, &offscreenFBO);
+    resize(width, height);
 }
 
 void GE::resize(uint width, uint height)
@@ -65,16 +110,54 @@ void GE::resize(uint width, uint height)
     
     GLC(glViewport (0, 0, width, height));
     
-    projectionMatrix = glm::perspective(75.0f, this->width / (float) this->height, 0.001f, 10000.f);
+    projectionMatrix = glm::perspective(75.0f, this->width / (float) this->height, 0.1f, 1000.f);
     GLC(glClearColor(0, 0, 0, 1)); 
+    
+    
+    glDeleteTextures(1, &offscreenColorTex);
+    glGenTextures(1, &offscreenColorTex);
+    glBindTexture(GL_TEXTURE_2D, offscreenColorTex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, this->width, this->height);
+    
+    //glDeleteTextures(1, &offscreenDepthTex);
+    glGenTextures(1, &offscreenDepthTex);
+    glBindTexture(GL_TEXTURE_2D, offscreenDepthTex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_DEPTH_COMPONENT24, this->width, this->height);
+    
+    glBindFramebuffer(GL_FRAMEBUFFER_EXT, offscreenFBO);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, offscreenColorTex, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, offscreenDepthTex, 0);
+    
+    GLenum status;
+    status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    if(status != GL_FRAMEBUFFER_COMPLETE)
+      exit(13);
+    
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void GE::clearDepth()
 {
-  GLC(glClear(GL_DEPTH_BUFFER_BIT));
+   glBindFramebuffer(GL_FRAMEBUFFER_EXT, offscreenFBO);
+   GLC(glClear(GL_DEPTH_BUFFER_BIT));
+   glBindFramebuffer(GL_FRAMEBUFFER_EXT, 0);
 }
 
-void GE::render(SceneObject* o, double time)
+void GE::render(SceneObject* o)
 { 
     nbLights = 0;
     o->computeLightsPositions(glm::mat4(1.f));
@@ -89,8 +172,11 @@ void GE::render(SceneObject* o, double time)
     GLC(glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::vec4)*2*NBLIGHTS, lights));
     GLC(glBindBuffer(GL_UNIFORM_BUFFER, 0));
     
+    glBindFramebuffer(GL_FRAMEBUFFER_EXT, offscreenFBO);
     
     o->draw(glm::mat4(1.f));
+   
+    glBindFramebuffer(GL_FRAMEBUFFER_EXT, 0);
 
     GLC(glBindVertexArray(0));
     GLC(glUseProgram(0));
@@ -99,6 +185,18 @@ void GE::render(SceneObject* o, double time)
     GLC(glFlush());
 
     return;
+}
+
+void GE::renderPostFX(uint program)
+{
+    GLC(glClear(GL_DEPTH_BUFFER_BIT));
+    glBindVertexArray(offscreenVAO);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, offscreenColorTex);
+    
+    glUseProgram(programs[program].id);
+    
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
 
@@ -529,7 +627,6 @@ uint GE::loadTexture(string name, string filePath, bool withMimaps)
     
     int mipmapLevels = floor(log2(glm::max(ilGetInteger(IL_IMAGE_WIDTH),ilGetInteger(IL_IMAGE_HEIGHT)))+1);
     
-    GLC(glHint(GL_TEXTURE_COMPRESSION_HINT, GL_NICEST));
     GLC(glTexStorage2D(GL_TEXTURE_2D, withMimaps?mipmapLevels:1, GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, ilGetInteger(IL_IMAGE_WIDTH), ilGetInteger(IL_IMAGE_HEIGHT)));
     
     GLC(glTexSubImage2D(
@@ -556,7 +653,6 @@ uint GE::loadTexture(string name, string filePath, bool withMimaps)
       
       GLC(glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16));
       
-      GLC(glHint(GL_GENERATE_MIPMAP_HINT, GL_NICEST));
       GLC(glGenerateMipmap(GL_TEXTURE_2D));
     }
     else
