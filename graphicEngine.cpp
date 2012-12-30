@@ -546,15 +546,18 @@ uint GE::loadTexture(string name, string filePath, bool withMimaps)
     
     
     if(withMimaps)
-    {
-      GLC(glHint(GL_GENERATE_MIPMAP_HINT, GL_NICEST));
-      GLC(glGenerateMipmap(GL_TEXTURE_2D));
-      
+    { 
+      // Enable trilinear filtering
       GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR));
       GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+      
       GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0));
       GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, mipmapLevels));
+      
       GLC(glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16));
+      
+      GLC(glHint(GL_GENERATE_MIPMAP_HINT, GL_NICEST));
+      GLC(glGenerateMipmap(GL_TEXTURE_2D));
     }
     else
     {
