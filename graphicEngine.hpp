@@ -381,12 +381,12 @@ private:
     
     
     // Post FX
-    
     GLuint offscreenFBO;
     GLuint offscreenVAO;
     GLuint offscreenVBO;
     GLuint offscreenIBO;
     GLuint offscreenColorTex;
+    GLuint offscreenNormalTex;
     GLuint offscreenDepthTex;
     
     

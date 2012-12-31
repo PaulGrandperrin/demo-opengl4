@@ -46,6 +46,7 @@ void GE::init(uint width, uint height)
     GLC(glEnable(GL_DEPTH_TEST));
     GLC(glDisable(GL_BLEND));
     GLC(glEnable(GL_MULTISAMPLE));
+    GLC(glDisable(GL_STENCIL_TEST));
     
     GLC(glHint(GL_LINE_SMOOTH_HINT, GL_NICEST));
     GLC(glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST));
@@ -58,8 +59,6 @@ void GE::init(uint width, uint height)
     GLC(glBindBuffer(GL_UNIFORM_BUFFER, 0));
     
     GLC(glBindBufferRange(GL_UNIFORM_BUFFER, LIGHTSUBBP, lightsUBO, 0, sizeof(glm::vec4) *2* NBLIGHTS));
-    
-    
     
     
     // create offline rectangle
@@ -99,7 +98,7 @@ void GE::init(uint width, uint height)
     GLC(glBindBuffer(GL_ARRAY_BUFFER, 0));
     
      // create FBO
-    glGenFramebuffers(1, &offscreenFBO);
+    GLC(glGenFramebuffers(1, &offscreenFBO));
     resize(width, height);
 }
 
@@ -114,47 +113,61 @@ void GE::resize(uint width, uint height)
     GLC(glClearColor(0, 0, 0, 1)); 
     
     
-    glDeleteTextures(1, &offscreenColorTex);
-    glGenTextures(1, &offscreenColorTex);
-    glBindTexture(GL_TEXTURE_2D, offscreenColorTex);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
-    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, this->width, this->height);
+    GLC(glDeleteTextures(1, &offscreenColorTex));
+    GLC(glGenTextures(1, &offscreenColorTex));
+    GLC(glBindTexture(GL_TEXTURE_2D, offscreenColorTex));
+    GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP));
+    GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP));
+    GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
+    GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
+    GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0));
+    GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0));
+    GLC(glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, this->width, this->height));
     
-    //glDeleteTextures(1, &offscreenDepthTex);
-    glGenTextures(1, &offscreenDepthTex);
-    glBindTexture(GL_TEXTURE_2D, offscreenDepthTex);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
-    glTexStorage2D(GL_TEXTURE_2D, 1, GL_DEPTH_COMPONENT24, this->width, this->height);
+    GLC(glDeleteTextures(1, &offscreenNormalTex));
+    GLC(glGenTextures(1, &offscreenNormalTex));
+    GLC(glBindTexture(GL_TEXTURE_2D, offscreenNormalTex));
+    GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP));
+    GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP));
+    GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
+    GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
+    GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0));
+    GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0));
+    GLC(glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, this->width, this->height));
     
-    glBindFramebuffer(GL_FRAMEBUFFER_EXT, offscreenFBO);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, offscreenColorTex, 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, offscreenDepthTex, 0);
+    GLC(glDeleteTextures(1, &offscreenDepthTex));
+    GLC(glGenTextures(1, &offscreenDepthTex));
+    GLC(glBindTexture(GL_TEXTURE_2D, offscreenDepthTex));
+    GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP));
+    GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP));
+    GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
+    GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
+    GLC(glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_NONE));
+    GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0));
+    GLC(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0));
+    GLC(glTexStorage2D(GL_TEXTURE_2D, 1, GL_DEPTH_COMPONENT32, this->width, this->height));
+    
+    GLC(glBindFramebuffer(GL_FRAMEBUFFER, offscreenFBO));
+    GLC(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, offscreenColorTex, 0));
+    GLC(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, offscreenNormalTex, 0));
+    GLC(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, offscreenDepthTex, 0));
     
     GLenum status;
-    status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    status = GLCR(glCheckFramebufferStatus(GL_FRAMEBUFFER));
     if(status != GL_FRAMEBUFFER_COMPLETE)
       exit(13);
     
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    GLenum buffers[2]={GL_COLOR_ATTACHMENT0,GL_COLOR_ATTACHMENT1};
+    GLC(glDrawBuffers(2, buffers));
+    
+    GLC(glBindFramebuffer(GL_FRAMEBUFFER, 0));
 }
 
 void GE::clearDepth()
 {
-   glBindFramebuffer(GL_FRAMEBUFFER_EXT, offscreenFBO);
+   glBindFramebuffer(GL_FRAMEBUFFER, offscreenFBO);
    GLC(glClear(GL_DEPTH_BUFFER_BIT));
-   glBindFramebuffer(GL_FRAMEBUFFER_EXT, 0);
+   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void GE::render(SceneObject* o)
@@ -167,36 +180,44 @@ void GE::render(SceneObject* o)
       lights[i*4+3]=0;
     }
     
+    GLC(glEnable(GL_CULL_FACE));
+    GLC(glCullFace(GL_BACK));
+    GLC(glEnable(GL_DEPTH_TEST));
     
     GLC(glBindBuffer(GL_UNIFORM_BUFFER, lightsUBO));
     GLC(glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::vec4)*2*NBLIGHTS, lights));
     GLC(glBindBuffer(GL_UNIFORM_BUFFER, 0));
     
-    glBindFramebuffer(GL_FRAMEBUFFER_EXT, offscreenFBO);
+    GLC(glBindFramebuffer(GL_FRAMEBUFFER, offscreenFBO));
     
     o->draw(glm::mat4(1.f));
    
-    glBindFramebuffer(GL_FRAMEBUFFER_EXT, 0);
+    GLC(glBindFramebuffer(GL_FRAMEBUFFER, 0));
 
     GLC(glBindVertexArray(0));
     GLC(glUseProgram(0));
     GLC(glBindTexture(GL_TEXTURE_2D, 0));
-    
-    GLC(glFlush());
 
     return;
 }
 
 void GE::renderPostFX(uint program)
 {
-    GLC(glClear(GL_DEPTH_BUFFER_BIT));
-    glBindVertexArray(offscreenVAO);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, offscreenColorTex);
+    GLC(glDisable(GL_CULL_FACE));
+    GLC(glDisable(GL_DEPTH_TEST));
     
-    glUseProgram(programs[program].id);
+    GLC(glBindVertexArray(offscreenVAO));
+    GLC(glActiveTexture(GL_TEXTURE0));	// TODO Use custom enum
+    GLC(glBindTexture(GL_TEXTURE_2D, offscreenColorTex));
+    GLC(glActiveTexture(GL_TEXTURE0+1));	// TODO Use custom enum
+    GLC(glBindTexture(GL_TEXTURE_2D, offscreenNormalTex));
+    GLC(glActiveTexture(GL_TEXTURE0+2));	// TODO Use custom enum
+    GLC(glBindTexture(GL_TEXTURE_2D, offscreenDepthTex));
     
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    GLC(glUseProgram(programs[program].id));
+    
+    GLC(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0));
+    GLC(glActiveTexture(GL_TEXTURE0));
 }
 
 

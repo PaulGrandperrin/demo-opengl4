@@ -17,6 +17,7 @@ smooth in vec3 normalVec;
 smooth in vec4 lightVec[NBLIGHTS];
 smooth in vec3 cameraVec;
 
+
 layout(location = 0, index = 0) out vec4 fragColor;
 layout(location = 1, index = 0) out vec4 fragNormal;
 
@@ -28,7 +29,7 @@ void main()
 	
 	vec4 color=texture(textureMap,texCoord);
 
-	vec4 al = vec4(0.3,0.3,0.3,1);
+	vec4 al = vec4(0.5,0.5,0.5,1);
 	vec4 dl = vec4(0,0,0,1);
 	vec4 sl = vec4(0,0,0,1);
 	
@@ -38,9 +39,16 @@ void main()
 	  if(lightVec[i][3] > 0)
 	  { 
 	    lightVecN[i]= normalize(lightVec[i].xyz);
-	    dl = dl + lightsColors[i]*max(dot(lightVecN[i],normalVecN),0.0)*1 * lightVec[i][3];
-	    sl = sl + lightsColors[i]*pow(max(dot(-cameraVecN,reflect(lightVecN[i],normalVecN)),0.0),64)*8* lightVec[i][3];
-
+	    
+	    if((max(dot(lightVecN[i],normalVecN),0.0)*1 * lightVec[i][3])>0)
+	    {
+	      dl=dl+lightsColors[i]/5;
+	    }
+	    
+	    if((pow(max(dot(-cameraVecN,reflect(lightVecN[i],normalVecN)),0.0),64)*8*lightVec[i][3])>=0.9)
+	    {
+		sl = lightsColors[i];
+	    }
 	    
 	  }
 	}

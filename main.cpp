@@ -47,13 +47,17 @@ int main(int argc, char* argv[], char* env[])
     
     glfwSetWindowSizeCallback(&resize);
     
-    uint meshDemon = Ge.loadMesh("test","meshes/skeleton.obj");
+    uint meshSkeleton = Ge.loadMesh("test","meshes/skeleton.obj");
     uint meshIle = Ge.loadMesh("test","meshes/ile.obj");
-    uint meshCube = Ge.loadMesh("test","meshes/cube.obj");
+    uint meshCubeSmooth = Ge.loadMesh("test","meshes/cubeSmooth.obj");
+    uint meshCubeFlat = Ge.loadMesh("test","meshes/cubeFlat.obj");
+    uint meshCubeSkybox = Ge.loadMesh("test","meshes/cubeSkybox.obj");
     
-    uint textureDemon = Ge.loadTexture("test","textures/bone.tga", true);
+    uint textureBone = Ge.loadTexture("test","textures/bone.tga", true);
     uint textureIle = Ge.loadTexture("test","textures/ile.png", true);
-    uint textureCube = Ge.loadTexture("test","textures/skybox/hi-quality/stormydays.tga", false);
+    uint textureSkybox = Ge.loadTexture("test","textures/skybox/hi-quality/stormydays.tga", false);
+    uint textureWhite = Ge.loadTexture("test","textures/white.png", false);
+    uint textureGrey = Ge.loadTexture("test","textures/grey.png", false);
     
     uint programTexture = Ge.createProgram("test");
     uint ps = Ge.loadShader("test","shaders/texture.frag",GL_FRAGMENT_SHADER);
@@ -62,6 +66,13 @@ int main(int argc, char* argv[], char* env[])
     Ge.addShaderToProgram(vs,programTexture);
     Ge.linkProgram(programTexture);
 
+    uint programTexturePhongCelShading = Ge.createProgram("test");
+    ps = Ge.loadShader("test","shaders/texturePhongCelShading.frag",GL_FRAGMENT_SHADER);
+    vs = Ge.loadShader("test","shaders/texturePhong.vert",GL_VERTEX_SHADER);
+    Ge.addShaderToProgram(ps,programTexturePhongCelShading);
+    Ge.addShaderToProgram(vs,programTexturePhongCelShading);
+    Ge.linkProgram(programTexturePhongCelShading);
+    
     uint programTexturePhong = Ge.createProgram("test");
     ps = Ge.loadShader("test","shaders/texturePhong.frag",GL_FRAGMENT_SHADER);
     vs = Ge.loadShader("test","shaders/texturePhong.vert",GL_VERTEX_SHADER);
@@ -69,19 +80,19 @@ int main(int argc, char* argv[], char* env[])
     Ge.addShaderToProgram(vs,programTexturePhong);
     Ge.linkProgram(programTexturePhong);
 
-    uint programCelShading = Ge.createProgram("test");
-    ps = Ge.loadShader("test","shaders/postFX/celShading.frag",GL_FRAGMENT_SHADER);
-    vs = Ge.loadShader("test","shaders/postFX/celShading.vert",GL_VERTEX_SHADER);
-    Ge.addShaderToProgram(ps,programCelShading);
-    Ge.addShaderToProgram(vs,programCelShading);
-    Ge.linkProgram(programCelShading);
+    uint programPostFXSobel = Ge.createProgram("test");
+    ps = Ge.loadShader("test","shaders/postFX/sobelFilterDepthAndNormal.frag",GL_FRAGMENT_SHADER);
+    vs = Ge.loadShader("test","shaders/postFX/basic.vert",GL_VERTEX_SHADER);
+    Ge.addShaderToProgram(ps,programPostFXSobel);
+    Ge.addShaderToProgram(vs,programPostFXSobel);
+    Ge.linkProgram(programPostFXSobel);
     
     
     Light* light1 = new Light(&Ge);
     light1->identity();
-    light1->translate(-15,-15,-10);
-    light1->color=glm::vec4(1,0,0,1);
-    light1->radius = 45;
+    light1->translate(-15,-20,-10);
+    light1->color=glm::vec4(1,1,1,1);
+    light1->radius = 30;
     
     Light* light2 = new Light(&Ge);
     light2->identity();
@@ -110,27 +121,27 @@ int main(int argc, char* argv[], char* env[])
     
     Light* light6 = new Light(&Ge);
     light6->identity();
-    light6->translate(0,15,15);
-    light6->color=glm::vec4(0,0,1,1);
-    light6->radius=45;
+    light6->translate(0,20,15);
+    light6->color=glm::vec4(1,1,1,1);
+    light6->radius=30;
     
     SceneComposite* lightsA = new SceneComposite(&Ge);
     lightsA->identity();
     lightsA->add(light1);
-    lightsA->add(light2);
-    lightsA->add(light3);
+//     lightsA->add(light2);
+//     lightsA->add(light3);
     
     SceneComposite* lightsB = new SceneComposite(&Ge);
     lightsB->identity();
-    lightsB->add(light4);
-    lightsB->add(light5);
-    lightsB->add(light6);
+//     lightsB->add(light4);
+//     lightsB->add(light5);
+     lightsB->add(light6);
     
     Solid* skeleton = new Solid(&Ge);
     skeleton->identity();
-    skeleton->mesh=meshDemon;
-    skeleton->program=programTexturePhong;
-    skeleton->texture=textureDemon;
+    skeleton->mesh=meshSkeleton;
+    skeleton->program=programTexturePhongCelShading;
+    skeleton->texture=textureWhite;
     
     Solid* ile = new Solid(&Ge);
     ile->identity();
@@ -139,18 +150,34 @@ int main(int argc, char* argv[], char* env[])
     ile->program=programTexture;
     ile->texture=textureIle;
     
-    Solid* cube = new Solid(&Ge);
-    cube->identity();
-    cube->mesh=meshCube;
-    cube->program=programTexture;
-    cube->texture=textureCube;
+    Solid* skybox = new Solid(&Ge);
+    skybox->identity();
+    skybox->mesh=meshCubeSkybox;
+    skybox->program=programTexture;
+    skybox->texture=textureSkybox;
+    
+    Solid* cubeSmooth = new Solid(&Ge);
+    cubeSmooth->identity();
+    cubeSmooth->translate(-2,0,3);
+    cubeSmooth->mesh=meshCubeSmooth;
+    cubeSmooth->program=programTexturePhong;
+    cubeSmooth->texture=textureGrey;
+    
+    Solid* cubeFlat = new Solid(&Ge);
+    cubeFlat->identity();
+    cubeFlat->translate(2,0,3);
+    cubeFlat->mesh=meshCubeFlat;
+    cubeFlat->program=programTexturePhong;
+    cubeFlat->texture=textureGrey;
     
     SceneComposite* scene = new SceneComposite(&Ge);
     scene->identity();
     scene->add(skeleton);
     scene->add(lightsA);
     scene->add(lightsB);
-    scene->add(ile);
+    //scene->add(ile);
+    //scene->add(cubeFlat);
+    //scene->add(cubeSmooth);
     
     float azimut = 0, elevation = 0, twist = 0;
     float camX = 0, camY = 0, camZ = 0;
@@ -259,15 +286,15 @@ int main(int argc, char* argv[], char* env[])
 	skeleton->identity();
 	
 	lightsA->identity();
-	lightsA->rotate((float)monoTime*50, 0, 1, 0);
+	lightsA->rotate((float)monoTime*20, 0, 1, 0);
 	
 	lightsB->identity();
-	lightsB->rotate(-(float)monoTime*50, 0, 1, 0);
+	lightsB->rotate(-(float)monoTime*20, 0, 1, 0);
 	
-	cube->identity();
-	cube->translate(0,0,0);
-	cube->rotate(-90, 1, 0, 0);
-	cube->rotate((float)monoTime, 0, 0, 1);
+	skybox->identity();
+	skybox->translate(0,0,0);
+	skybox->rotate(-90, 1, 0, 0);
+	skybox->rotate((float)monoTime, 0, 0, 1);
 	
 	scene->identity();
 	//scene->rotate((float)monoTime*50, 0, 1, 0);
@@ -276,7 +303,7 @@ int main(int argc, char* argv[], char* env[])
 	Ge.camera.identity();
 	Ge.camera.rotate(elevation,1,0,0);
 	Ge.camera.rotate(azimut,0,1,0);
-	Ge.render(cube);
+	Ge.render(skybox);
 	
 	
 	Ge.clearDepth();
@@ -286,9 +313,7 @@ int main(int argc, char* argv[], char* env[])
 	Ge.camera.translate(camX,camY,camZ);
 	
 	Ge.render(scene);
-	
-	Ge.clearDepth();
-	Ge.renderPostFX(programCelShading);
+	Ge.renderPostFX(programPostFXSobel);
 	
         glfwSwapBuffers();
         running &= glfwGetWindowParam(GLFW_OPENED);
