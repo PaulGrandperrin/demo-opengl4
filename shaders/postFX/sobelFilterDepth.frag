@@ -37,33 +37,10 @@ float sobelDepth(float step)
 	return sqrt(fx * fx + fy * fy);
 }
 
-float sobelNormal(float step)
-{
-	float step_h = step;
-	float step_v = step;
-
-	vec3 a = texture(normalTex, texCoord + vec2(- step_h, - step_v)).rgb;
-	vec3 b = texture(normalTex, texCoord + vec2(0.0     , - step_v)).rgb;
-	vec3 c = texture(normalTex, texCoord + vec2(+ step_h, - step_v)).rgb;
-	vec3 d = texture(normalTex, texCoord + vec2(- step_h, 0.0     )).rgb;
-	vec3 f = texture(normalTex, texCoord + vec2(+ step_h, 0.0     )).rgb;
-	vec3 g = texture(normalTex, texCoord + vec2(- step_h, + step_v)).rgb;
-	vec3 h = texture(normalTex, texCoord + vec2(0.0     , + step_v)).rgb;
-	vec3 i = texture(normalTex, texCoord + vec2(+ step_h, + step_v)).rgb;
-
-	vec3 fx = (- 1.0 * a + 1.0 * c - 2.0 * d + 2.0 * f - 1.0 * g + 1.0 * i) / 4.0;
-	vec3 fy = (+ 1.0 * a + 2.0 * b + 1.0 * c - 1.0 * g - 2.0 * h - 1.0 * i) / 4.0;
-	
-	vec3 edge = sqrt(fx * fx + fy * fy);
-	
-	return edge.r + edge.g + edge.b;
-}
-
-
 void main()
 {
 	
-	if(sobelDepth(0.002) > 0.001 || sobelNormal(0.001) > 0.4)
+	if(sobelDepth(0.002) > 0.001)
 	{
 	  fragColor=vec4(0, 0, 0, 1);
 	}

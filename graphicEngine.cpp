@@ -109,7 +109,7 @@ void GE::resize(uint width, uint height)
     
     GLC(glViewport (0, 0, width, height));
     
-    projectionMatrix = glm::perspective(75.0f, this->width / (float) this->height, 0.1f, 1000.f);
+    projectionMatrix = glm::perspective(75.0f, this->width / (float) this->height, 0.1f, 500.f);
     GLC(glClearColor(0, 0, 0, 1)); 
     
     

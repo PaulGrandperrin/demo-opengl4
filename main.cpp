@@ -47,6 +47,8 @@ int main(int argc, char* argv[], char* env[])
     
     glfwSetWindowSizeCallback(&resize);
     
+    glfwDisable(GLFW_KEY_REPEAT);
+    
     uint meshSkeleton = Ge.loadMesh("test","meshes/skeleton.obj");
     uint meshIle = Ge.loadMesh("test","meshes/ile.obj");
     uint meshCubeSmooth = Ge.loadMesh("test","meshes/cubeSmooth.obj");
@@ -80,12 +82,47 @@ int main(int argc, char* argv[], char* env[])
     Ge.addShaderToProgram(vs,programTexturePhong);
     Ge.linkProgram(programTexturePhong);
 
-    uint programPostFXSobel = Ge.createProgram("test");
+    uint programPostFXSobelDepthAndNormal = Ge.createProgram("test");
     ps = Ge.loadShader("test","shaders/postFX/sobelFilterDepthAndNormal.frag",GL_FRAGMENT_SHADER);
     vs = Ge.loadShader("test","shaders/postFX/basic.vert",GL_VERTEX_SHADER);
-    Ge.addShaderToProgram(ps,programPostFXSobel);
-    Ge.addShaderToProgram(vs,programPostFXSobel);
-    Ge.linkProgram(programPostFXSobel);
+    Ge.addShaderToProgram(ps,programPostFXSobelDepthAndNormal);
+    Ge.addShaderToProgram(vs,programPostFXSobelDepthAndNormal);
+    Ge.linkProgram(programPostFXSobelDepthAndNormal);
+    
+    uint programPostFXSobelDepth = Ge.createProgram("test");
+    ps = Ge.loadShader("test","shaders/postFX/sobelFilterDepth.frag",GL_FRAGMENT_SHADER);
+//     vs = Ge.loadShader("test","shaders/postFX/basic.vert",GL_VERTEX_SHADER);
+    Ge.addShaderToProgram(ps,programPostFXSobelDepth);
+    Ge.addShaderToProgram(vs,programPostFXSobelDepth);
+    Ge.linkProgram(programPostFXSobelDepth);
+    
+    uint programPostFXSobelNormal = Ge.createProgram("test");
+    ps = Ge.loadShader("test","shaders/postFX/sobelFilterNormal.frag",GL_FRAGMENT_SHADER);
+//     vs = Ge.loadShader("test","shaders/postFX/basic.vert",GL_VERTEX_SHADER);
+    Ge.addShaderToProgram(ps,programPostFXSobelNormal);
+    Ge.addShaderToProgram(vs,programPostFXSobelNormal);
+    Ge.linkProgram(programPostFXSobelNormal);
+    
+    uint programPostFXBasic = Ge.createProgram("test");
+    ps = Ge.loadShader("test","shaders/postFX/basic.frag",GL_FRAGMENT_SHADER);
+//     vs = Ge.loadShader("test","shaders/postFX/basic.vert",GL_VERTEX_SHADER);
+    Ge.addShaderToProgram(ps,programPostFXBasic);
+    Ge.addShaderToProgram(vs,programPostFXBasic);
+    Ge.linkProgram(programPostFXBasic);
+    
+    uint programPostFXNormal = Ge.createProgram("test");
+    ps = Ge.loadShader("test","shaders/postFX/normal.frag",GL_FRAGMENT_SHADER);
+//     vs = Ge.loadShader("test","shaders/postFX/basic.vert",GL_VERTEX_SHADER);
+    Ge.addShaderToProgram(ps,programPostFXNormal);
+    Ge.addShaderToProgram(vs,programPostFXNormal);
+    Ge.linkProgram(programPostFXNormal);
+    
+    uint programPostFXDepth = Ge.createProgram("test");
+    ps = Ge.loadShader("test","shaders/postFX/depth.frag",GL_FRAGMENT_SHADER);
+//     vs = Ge.loadShader("test","shaders/postFX/basic.vert",GL_VERTEX_SHADER);
+    Ge.addShaderToProgram(ps,programPostFXDepth);
+    Ge.addShaderToProgram(vs,programPostFXDepth);
+    Ge.linkProgram(programPostFXDepth);
     
     
     Light* light1 = new Light(&Ge);
@@ -140,7 +177,7 @@ int main(int argc, char* argv[], char* env[])
     Solid* skeleton = new Solid(&Ge);
     skeleton->identity();
     skeleton->mesh=meshSkeleton;
-    skeleton->program=programTexturePhongCelShading;
+    skeleton->program=programTexture;
     skeleton->texture=textureWhite;
     
     Solid* ile = new Solid(&Ge);
@@ -186,9 +223,15 @@ int main(int argc, char* argv[], char* env[])
     
     bool mouseHidden = false;
     bool changeEscapeStatus = true;
+    bool changeMStatus = true;
+    bool changePStatus = true;
     
     double oldMonotime = glfwGetTime();
    
+    char mainProgramID = 0;
+    char postFXProgramID = 0;
+    
+    uint postFXProgram = programPostFXBasic;
     
     while( running )
     {
@@ -225,6 +268,63 @@ int main(int argc, char* argv[], char* env[])
 	  camZ += cos(-azimut/360.*2.*M_PI)*cos(elevation/360.*2.*M_PI)*distance;
 	  camX += sin(-azimut/360.*2.*M_PI)*cos(elevation/360.*2.*M_PI)*distance;
 	  camY += sin(elevation/360.*2.*M_PI)*distance;
+	}
+	
+	if( glfwGetKey('P') ==  GLFW_PRESS && changePStatus)
+	{
+	    postFXProgramID++;
+	    postFXProgramID%=6;
+	    switch(postFXProgramID)
+	    {
+	      case 0:
+		postFXProgram = programPostFXBasic;
+		break;
+	      case 1:
+		postFXProgram = programPostFXSobelDepth;
+		break;
+	      case 2:
+		postFXProgram = programPostFXSobelNormal;
+		break;
+	      case 3:
+		postFXProgram = programPostFXSobelDepthAndNormal;
+		break;
+	      case 4:
+		postFXProgram = programPostFXDepth;
+		break;
+	      case 5:
+		postFXProgram = programPostFXNormal;
+		break;
+	    }
+	    changePStatus = false;
+	}
+	
+	if(glfwGetKey('P') !=  GLFW_PRESS)
+	{
+	  changePStatus = true;
+	}
+	
+	if( glfwGetKey('M') ==  GLFW_PRESS && changeMStatus)
+	{
+	    mainProgramID++;
+	    mainProgramID%=3;
+	    switch(mainProgramID)
+	    {
+	      case 0:
+		skeleton->program = programTexture;
+		break;
+	      case 1:
+		skeleton->program = programTexturePhong;
+		break;
+	      case 2:
+		skeleton->program = programTexturePhongCelShading;
+		break;
+	    }
+	    changeMStatus = false;
+	}
+	
+	if(glfwGetKey('M') !=  GLFW_PRESS)
+	{
+	  changeMStatus = true;
 	}
 	
 	if( glfwGetKey(GLFW_KEY_SPACE) ==  GLFW_PRESS )
@@ -313,7 +413,7 @@ int main(int argc, char* argv[], char* env[])
 	Ge.camera.translate(camX,camY,camZ);
 	
 	Ge.render(scene);
-	Ge.renderPostFX(programPostFXSobel);
+	Ge.renderPostFX(postFXProgram);
 	
         glfwSwapBuffers();
         running &= glfwGetWindowParam(GLFW_OPENED);
