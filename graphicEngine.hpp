@@ -11,7 +11,7 @@
 //#define GLM_FORCE_INLINE
 #include <glm/glm.hpp>
 
-#include "glcorearb.h"
+#include <GL/glext.h>
 
 /**
  * This macros displays OpenGL errors on stderr if in DEBUG mode.
