@@ -21,7 +21,7 @@ using namespace std;
 using namespace DSGE;
 
 
-GE::GE() : camera(this), lastID(0)
+GE::GE() : camera(this), shaderParam1(9.9), shaderParam2(0), shaderParam3(0), lastID(0)
 {}
 
 void GE::init(uint width, uint height)
@@ -45,7 +45,7 @@ void GE::init(uint width, uint height)
     GLC(glCullFace(GL_BACK));
     GLC(glEnable(GL_DEPTH_TEST));
     GLC(glDisable(GL_BLEND));
-    GLC(glEnable(GL_MULTISAMPLE));
+    GLC(glDisable(GL_MULTISAMPLE));
     GLC(glDisable(GL_STENCIL_TEST));
     
     GLC(glHint(GL_LINE_SMOOTH_HINT, GL_NICEST));
@@ -170,8 +170,9 @@ void GE::clearDepth()
    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void GE::render(SceneObject* o)
+void GE::render(SceneObject* o, float time)
 { 
+    this->time=time;
     nbLights = 0;
     o->computeLightsPositions(glm::mat4(1.f));
     
@@ -201,7 +202,7 @@ void GE::render(SceneObject* o)
     return;
 }
 
-void GE::renderPostFX(uint program)
+void GE::renderPostFX(uint program, float time)
 {
     GLC(glDisable(GL_CULL_FACE));
     GLC(glDisable(GL_DEPTH_TEST));
@@ -216,6 +217,13 @@ void GE::renderPostFX(uint program)
     
     GLC(glUseProgram(programs[program].id));
     
+    GLI(glUniform1f(TIME_UNIFORM, time));
+    GLI(glUniform1f(HEIGHT_UNIFORM, height));
+    GLI(glUniform1f(WIDTH_UNIFORM, width));
+    GLI(glUniform1f(PARAM1_UNIFORM, shaderParam1));
+    GLI(glUniform1f(PARAM2_UNIFORM, shaderParam2));
+    GLI(glUniform1f(PARAM3_UNIFORM, shaderParam3));
+    
     GLC(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0));
     GLC(glActiveTexture(GL_TEXTURE0));
 }
@@ -228,6 +236,11 @@ void GE::drawSolid(Solid* of, glm::mat4 mat)
     program p = programs[of->program];
   
     GLC(glUseProgram(p.id));
+    GLI(glUniform1f(TIME_UNIFORM, time));
+    cout << time <<endl;
+    GLI(glUniform1f(PARAM1_UNIFORM, shaderParam1));
+    GLI(glUniform1f(PARAM2_UNIFORM, shaderParam2));
+    GLI(glUniform1f(PARAM3_UNIFORM, shaderParam3));
     
     glm::vec4 camPos = glm::inverse(camera.transform) * glm::vec4(0, 0, 0, 1);
     
@@ -372,19 +385,19 @@ uint GE::loadMesh(string name, string filePath)
             {
                 line >> sv;
                 c = sv.find_first_of('/');
-                v.pointId = atoi(sv.substr(0, c).c_str())-1;
+                v.pointId = atoi(sv.substr(0, c).c_str());
 
                 sv=sv.substr(c + 1, sv.length() - c - 1);
                 c=sv.find_first_of('/');
                 if (c == 0)
                     v.coordId = 0;
-                v.coordId = atoi(sv.substr(0, c).c_str())-1;
+                v.coordId = atoi(sv.substr(0, c).c_str());
                 
                 sv=sv.substr ( c+1,sv.length()-c-1 );
                 c=sv.find_first_of('/');
                 if (c == 0)
                     v.normalId = 0;
-                v.normalId = atoi(sv.substr(0, c).c_str())-1;
+                v.normalId = atoi(sv.substr(0, c).c_str());
 
                 
                 if(vertices.find(v) != vertices.end())
@@ -416,14 +429,32 @@ uint GE::loadMesh(string name, string filePath)
     /* TODO Optimize the order of vertices */
     for(auto it=vertices.begin(); it!=vertices.end(); it++)
     {
-        vertexArray[it->second*8]   = points[it->first.pointId].x;
-        vertexArray[it->second*8+1] = points[it->first.pointId].y;
-        vertexArray[it->second*8+2] = points[it->first.pointId].z;
-        vertexArray[it->second*8+3] = normals[it->first.normalId].x;
-        vertexArray[it->second*8+4] = normals[it->first.normalId].y;
-        vertexArray[it->second*8+5] = normals[it->first.normalId].z;
-        vertexArray[it->second*8+6] = coords[it->first.coordId].x;
-        vertexArray[it->second*8+7] = coords[it->first.coordId].y;
+        vertexArray[it->second*8]   = points[it->first.pointId-1].x;
+        vertexArray[it->second*8+1] = points[it->first.pointId-1].y;
+        vertexArray[it->second*8+2] = points[it->first.pointId-1].z;
+	if(it->first.normalId)
+	{
+	  vertexArray[it->second*8+3] = normals[it->first.normalId-1].x;
+	  vertexArray[it->second*8+4] = normals[it->first.normalId-1].y;
+	  vertexArray[it->second*8+5] = normals[it->first.normalId-1].z;
+	}
+	else
+	{
+	  vertexArray[it->second*8+3] = 0;
+	  vertexArray[it->second*8+4] = 0;
+	  vertexArray[it->second*8+5] = 0;
+	}
+	
+	if(it->first.coordId)
+	{
+	  vertexArray[it->second*8+6] = coords[it->first.coordId-1].x;
+	  vertexArray[it->second*8+7] = coords[it->first.coordId-1].y;
+	}
+	else
+	{
+	  vertexArray[it->second*8+6] = 0;
+	  vertexArray[it->second*8+7] = 0;
+	}
 /*
         cout << "px " << points[it->first.pointId].x << endl;
         cout << "py " << points[it->first.pointId].y << endl;

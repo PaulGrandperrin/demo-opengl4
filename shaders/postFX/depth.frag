@@ -1,6 +1,6 @@
 #version 430 core
 #define ZNEAR 0.1f
-#define ZFAR 500.f
+#define ZFAR 10.f
 precision highp float;
 
 
@@ -19,6 +19,6 @@ float linearDepth(float depth)
 
 void main()
 {
-	float d= linearDepth(texture(depthTex, texCoord));
-	fragColor= vec4(d,d,d,1);
+	float d = linearDepth(texture(depthTex, texCoord));
+	fragColor=vec4(d,d,d,1);
 }

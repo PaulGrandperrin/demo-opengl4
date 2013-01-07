@@ -23,20 +23,23 @@ int main(int argc, char* argv[], char* env[])
     bool running=true;
 
     if(!glfwInit())
-     //goto failInit;
-    exit(1); 
+    {
+      exit(EXIT_FAILURE); 
+    }
     
     glfwOpenWindowHint(GLFW_OPENGL_VERSION_MAJOR,4);
     glfwOpenWindowHint(GLFW_OPENGL_VERSION_MINOR,3);
     glfwOpenWindowHint(GLFW_OPENGL_PROFILE,GLFW_OPENGL_CORE_PROFILE);
     //glfwOpenWindowHint(GLFW_OPENGL_FORWARD_COMPAT,GL_TRUE);
-    glfwOpenWindowHint(GLFW_FSAA_SAMPLES,16);
+    //glfwOpenWindowHint(GLFW_FSAA_SAMPLES,16);
     
     glfwEnable(GLFW_STICKY_KEYS);
 
     if(!glfwOpenWindow(640,480, 0,0,0,0,0,0,GLFW_WINDOW))
-      //goto failOWindow;
-    exit(2);
+    {
+      glfwTerminate();
+      exit(EXIT_FAILURE);
+    }
     
     cout << glGetString(GL_VERSION) <<endl;
     
@@ -47,19 +50,7 @@ int main(int argc, char* argv[], char* env[])
     
     glfwSetWindowSizeCallback(&resize);
     
-    glfwDisable(GLFW_KEY_REPEAT);
-    
-    uint meshSkeleton = Ge.loadMesh("test","meshes/skeleton.obj");
-    uint meshIle = Ge.loadMesh("test","meshes/ile.obj");
-    uint meshCubeSmooth = Ge.loadMesh("test","meshes/cubeSmooth.obj");
-    uint meshCubeFlat = Ge.loadMesh("test","meshes/cubeFlat.obj");
-    uint meshCubeSkybox = Ge.loadMesh("test","meshes/cubeSkybox.obj");
-    
-    uint textureBone = Ge.loadTexture("test","textures/bone.tga", true);
-    uint textureIle = Ge.loadTexture("test","textures/ile.png", true);
-    uint textureSkybox = Ge.loadTexture("test","textures/skybox/hi-quality/stormydays.tga", false);
-    uint textureWhite = Ge.loadTexture("test","textures/white.png", false);
-    uint textureGrey = Ge.loadTexture("test","textures/grey.png", false);
+    glfwEnable(GLFW_KEY_REPEAT);
     
     uint programTexture = Ge.createProgram("test");
     uint ps = Ge.loadShader("test","shaders/texture.frag",GL_FRAGMENT_SHADER);
@@ -82,6 +73,14 @@ int main(int argc, char* argv[], char* env[])
     Ge.addShaderToProgram(vs,programTexturePhong);
     Ge.linkProgram(programTexturePhong);
 
+    uint programWaveTexturePhong = Ge.createProgram("test");
+    ps = Ge.loadShader("test","shaders/texturePhong.frag",GL_FRAGMENT_SHADER);
+    vs = Ge.loadShader("test","shaders/waveTexturePhong.vert",GL_VERTEX_SHADER);
+    Ge.addShaderToProgram(ps,programWaveTexturePhong);
+    Ge.addShaderToProgram(vs,programWaveTexturePhong);
+    Ge.linkProgram(programWaveTexturePhong);
+
+    
     uint programPostFXSobelDepthAndNormal = Ge.createProgram("test");
     ps = Ge.loadShader("test","shaders/postFX/sobelFilterDepthAndNormal.frag",GL_FRAGMENT_SHADER);
     vs = Ge.loadShader("test","shaders/postFX/basic.vert",GL_VERTEX_SHADER);
@@ -124,12 +123,54 @@ int main(int argc, char* argv[], char* env[])
     Ge.addShaderToProgram(vs,programPostFXDepth);
     Ge.linkProgram(programPostFXDepth);
     
+    uint programPostFXWaves = Ge.createProgram("test");
+    ps = Ge.loadShader("test","shaders/postFX/waves.frag",GL_FRAGMENT_SHADER);
+//     vs = Ge.loadShader("test","shaders/postFX/basic.vert",GL_VERTEX_SHADER);
+    Ge.addShaderToProgram(ps,programPostFXWaves);
+    Ge.addShaderToProgram(vs,programPostFXWaves);
+    Ge.linkProgram(programPostFXWaves);
+    
+    uint programPostFXDiffract = Ge.createProgram("test");
+    ps = Ge.loadShader("test","shaders/postFX/diffraction.frag",GL_FRAGMENT_SHADER);
+//     vs = Ge.loadShader("test","shaders/postFX/basic.vert",GL_VERTEX_SHADER);
+    Ge.addShaderToProgram(ps,programPostFXDiffract);
+    Ge.addShaderToProgram(vs,programPostFXDiffract);
+    Ge.linkProgram(programPostFXDiffract);
+    
+    uint programPostFXBlur = Ge.createProgram("test");
+    ps = Ge.loadShader("test","shaders/postFX/blur.frag",GL_FRAGMENT_SHADER);
+//     vs = Ge.loadShader("test","shaders/postFX/basic.vert",GL_VERTEX_SHADER);
+    Ge.addShaderToProgram(ps,programPostFXBlur);
+    Ge.addShaderToProgram(vs,programPostFXBlur);
+    Ge.linkProgram(programPostFXBlur);
+    
+    uint meshOrkTorso = Ge.loadMesh("test","meshes/ork/torso.obj");
+    uint meshOrkLegs = Ge.loadMesh("test","meshes/ork/legs.obj");
+    uint meshOrkSpines = Ge.loadMesh("test","meshes/ork/spines.obj");
+    uint meshOrkShoulder = Ge.loadMesh("test","meshes/ork/shoulder.obj");
+    uint meshOrkShoulder2 = Ge.loadMesh("test","meshes/ork/shoulder2.obj");
+    uint meshOrkLogo = Ge.loadMesh("test","meshes/ork/logo.obj");
+    uint meshOrkRings = Ge.loadMesh("test","meshes/ork/rings.obj");
+    uint meshOrkShoes = Ge.loadMesh("test","meshes/ork/shoes.obj");
+    uint meshSkeleton = Ge.loadMesh("test","meshes/skeleton.obj");
+//     uint meshSea = Ge.loadMesh("test","meshes/sea.obj");
+    uint meshIle = Ge.loadMesh("test","meshes/ile.obj");
+    uint meshCubeSmooth = Ge.loadMesh("test","meshes/cubeSmooth.obj");
+    uint meshCubeFlat = Ge.loadMesh("test","meshes/cubeFlat.obj");
+    uint meshCubeSkybox = Ge.loadMesh("test","meshes/cubeSkybox.obj");
+    
+    uint textureBone = Ge.loadTexture("test","textures/bone.tga", true);
+    uint textureIle = Ge.loadTexture("test","textures/ile.png", true);
+    uint textureSkybox = Ge.loadTexture("test","textures/skybox/hi-quality/stormydays.tga", false);
+    uint textureWhite = Ge.loadTexture("test","textures/white.png", false);
+    uint textureGrey = Ge.loadTexture("test","textures/grey.png", false);
+    
     
     Light* light1 = new Light(&Ge);
     light1->identity();
     light1->translate(-15,-20,-10);
-    light1->color=glm::vec4(1,1,1,1);
-    light1->radius = 30;
+    light1->color=glm::vec4(0,0,1,1);
+    light1->radius = 35;
     
     Light* light2 = new Light(&Ge);
     light2->identity();
@@ -159,8 +200,8 @@ int main(int argc, char* argv[], char* env[])
     Light* light6 = new Light(&Ge);
     light6->identity();
     light6->translate(0,20,15);
-    light6->color=glm::vec4(1,1,1,1);
-    light6->radius=30;
+    light6->color=glm::vec4(1,0,0,1);
+    light6->radius=35;
     
     SceneComposite* lightsA = new SceneComposite(&Ge);
     lightsA->identity();
@@ -174,11 +215,59 @@ int main(int argc, char* argv[], char* env[])
 //     lightsB->add(light5);
      lightsB->add(light6);
     
+    Solid* orkTorso = new Solid(&Ge);
+    orkTorso->identity();
+    orkTorso->mesh=meshOrkTorso;
+    orkTorso->program=programTexture;
+    orkTorso->texture=textureWhite;
+    
+    Solid* orkLegs = new Solid(&Ge);
+    orkLegs->identity();
+    orkLegs->mesh=meshOrkLegs;
+    orkLegs->program=programTexture;
+    orkLegs->texture=textureWhite;
+    
+    Solid* orkShoes = new Solid(&Ge);
+    orkShoes->identity();
+    orkShoes->mesh=meshOrkShoes;
+    orkShoes->program=programTexture;
+    orkShoes->texture=textureWhite;
+    
+    Solid* orkShoulder = new Solid(&Ge);
+    orkShoulder->identity();
+    orkShoulder->mesh=meshOrkShoulder;
+    orkShoulder->program=programTexture;
+    orkShoulder->texture=textureWhite;
+    
+    Solid* orkShoulder2 = new Solid(&Ge);
+    orkShoulder2->identity();
+    orkShoulder2->mesh=meshOrkShoulder2;
+    orkShoulder2->program=programTexture;
+    orkShoulder2->texture=textureWhite;
+    
+    Solid* orkRings = new Solid(&Ge);
+    orkRings->identity();
+    orkRings->mesh=meshOrkRings;
+    orkRings->program=programTexture;
+    orkRings->texture=textureWhite;
+    
+    Solid* orkLogo = new Solid(&Ge);
+    orkLogo->identity();
+    orkLogo->mesh=meshOrkLogo;
+    orkLogo->program=programTexture;
+    orkLogo->texture=textureWhite;
+    
+    Solid* orkSpines = new Solid(&Ge);
+    orkSpines->identity();
+    orkSpines->mesh=meshOrkSpines;
+    orkSpines->program=programTexture;
+    orkSpines->texture=textureWhite;
+     
     Solid* skeleton = new Solid(&Ge);
     skeleton->identity();
     skeleton->mesh=meshSkeleton;
     skeleton->program=programTexture;
-    skeleton->texture=textureWhite;
+    skeleton->texture=textureBone;
     
     Solid* ile = new Solid(&Ge);
     ile->identity();
@@ -186,6 +275,15 @@ int main(int argc, char* argv[], char* env[])
     ile->mesh=meshIle;
     ile->program=programTexture;
     ile->texture=textureIle;
+    
+//     Solid* sea = new Solid(&Ge);
+//     sea->identity();
+//     sea->translate(0,-43.5,0);
+//     sea->scale(700,700,700);
+//     sea->rotate(180, 1,0,0);
+//     sea->mesh=meshSea;
+//     sea->program=programWaveTexturePhong;
+//     sea->texture=textureIle;
     
     Solid* skybox = new Solid(&Ge);
     skybox->identity();
@@ -207,16 +305,27 @@ int main(int argc, char* argv[], char* env[])
     cubeFlat->program=programTexturePhong;
     cubeFlat->texture=textureGrey;
     
+    SceneComposite* ork = new SceneComposite(&Ge);
+    ork->add(orkTorso);
+    ork->add(orkLegs);
+    ork->add(orkLogo);
+    ork->add(orkRings);
+    ork->add(orkShoes);
+    ork->add(orkShoulder);
+    ork->add(orkShoulder2);
+    ork->add(orkSpines);
+    
     SceneComposite* scene = new SceneComposite(&Ge);
     scene->identity();
-    scene->add(skeleton);
+    scene->add(ork);
     scene->add(lightsA);
     scene->add(lightsB);
+//     scene->add(sea);
     //scene->add(ile);
     //scene->add(cubeFlat);
     //scene->add(cubeSmooth);
     
-    float azimut = 0, elevation = 0, twist = 0;
+    float azimut = 0, elevation = 0;// twist = 0;
     float camX = 0, camY = 0, camZ = 0;
     
     int mouseX = 0, mouseY = 0;
@@ -270,10 +379,30 @@ int main(int argc, char* argv[], char* env[])
 	  camY += sin(elevation/360.*2.*M_PI)*distance;
 	}
 	
+	if( glfwGetKey('R') ==  GLFW_PRESS )
+	    Ge.shaderParam1+=0.01;
+	
+	if( glfwGetKey('F') ==  GLFW_PRESS )
+	    Ge.shaderParam1-=0.01;
+	
+	if( glfwGetKey('T') ==  GLFW_PRESS )
+	    Ge.shaderParam2+=0.01;
+	
+	if( glfwGetKey('G') ==  GLFW_PRESS )
+	    Ge.shaderParam2-=0.01;
+	
+	if( glfwGetKey('Y') ==  GLFW_PRESS )
+	    Ge.shaderParam3+=0.01;
+	
+	if( glfwGetKey('H') ==  GLFW_PRESS )
+	    Ge.shaderParam3-=0.01;
+	
+	
+
 	if( glfwGetKey('P') ==  GLFW_PRESS && changePStatus)
 	{
 	    postFXProgramID++;
-	    postFXProgramID%=6;
+	    postFXProgramID%=9;
 	    switch(postFXProgramID)
 	    {
 	      case 0:
@@ -294,6 +423,16 @@ int main(int argc, char* argv[], char* env[])
 	      case 5:
 		postFXProgram = programPostFXNormal;
 		break;
+	      case 6:
+		postFXProgram = programPostFXWaves;
+		break;
+	      case 7:
+		postFXProgram = programPostFXDiffract;
+		break;
+	      case 8:
+		postFXProgram = programPostFXBlur;
+		break;
+	      
 	    }
 	    changePStatus = false;
 	}
@@ -307,18 +446,30 @@ int main(int argc, char* argv[], char* env[])
 	{
 	    mainProgramID++;
 	    mainProgramID%=3;
+	    uint p;
 	    switch(mainProgramID)
 	    {
 	      case 0:
-		skeleton->program = programTexture;
+		p = programTexture;
 		break;
 	      case 1:
-		skeleton->program = programTexturePhong;
+		p = programTexturePhong;
 		break;
 	      case 2:
-		skeleton->program = programTexturePhongCelShading;
+		p = programTexturePhongCelShading;
 		break;
 	    }
+	    
+	    orkTorso->program = p;
+	    orkLegs->program = p;
+	    orkShoulder->program = p;
+	    orkShoulder2->program = p;
+	    orkSpines->program = p;
+	    orkShoes->program = p;
+	    orkRings->program = p;
+	    orkLogo->program = p;
+	    skeleton->program=p;
+	    
 	    changeMStatus = false;
 	}
 	
@@ -383,8 +534,6 @@ int main(int argc, char* argv[], char* env[])
 	
 
 	
-	skeleton->identity();
-	
 	lightsA->identity();
 	lightsA->rotate((float)monoTime*20, 0, 1, 0);
 	
@@ -403,7 +552,7 @@ int main(int argc, char* argv[], char* env[])
 	Ge.camera.identity();
 	Ge.camera.rotate(elevation,1,0,0);
 	Ge.camera.rotate(azimut,0,1,0);
-	Ge.render(skybox);
+	Ge.render(skybox, monoTime);
 	
 	
 	Ge.clearDepth();
@@ -412,8 +561,8 @@ int main(int argc, char* argv[], char* env[])
 	Ge.camera.rotate(azimut,0,1,0);
 	Ge.camera.translate(camX,camY,camZ);
 	
-	Ge.render(scene);
-	Ge.renderPostFX(postFXProgram);
+	Ge.render(scene, monoTime);
+	Ge.renderPostFX(postFXProgram, monoTime*20);
 	
         glfwSwapBuffers();
         running &= glfwGetWindowParam(GLFW_OPENED);
@@ -424,9 +573,4 @@ int main(int argc, char* argv[], char* env[])
 
     return EXIT_SUCCESS;
 
-    failOWindow:
-    glfwTerminate();
-
-    failInit:
-    return EXIT_FAILURE;
 }

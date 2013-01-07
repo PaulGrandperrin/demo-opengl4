@@ -179,10 +179,10 @@ public:
   Solid(GE* ge);
   
   virtual void draw(glm::mat4 mat);
-  virtual void computeLightsPositions(glm::mat4 mat) {}
+  virtual void computeLightsPositions(glm::mat4) {}
 };
 
-#define NBLIGHTS 10
+#define NBLIGHTS 2
 
 class Light : public SceneObject
 {
@@ -191,7 +191,7 @@ public:
   
   Light(GE* ge);
   
-  virtual void draw(glm::mat4 mat) {}
+  virtual void draw(glm::mat4) {}
   virtual void computeLightsPositions(glm::mat4 mat);
 
   glm::vec4 color;
@@ -205,8 +205,8 @@ public:
 
     void init(uint width,uint height);
     void resize(uint width,uint height);
-    void render(DSGE::SceneObject* o); // TODO let choose which framebuffer
-    void renderPostFX(uint program); // TODO allow to render on an offscreen framebuffer
+    void render(DSGE::SceneObject* o, float time); // TODO let choose which framebuffer
+    void renderPostFX(uint program, float time); // TODO allow to render on an offscreen framebuffer
     void clearDepth();
 
     // FS Resource loaders
@@ -289,6 +289,10 @@ private: // Class methods
 
 public:
     Object3D camera;
+    float shaderParam1;
+    float shaderParam2;
+    float shaderParam3;
+    float time;
     
 private:
     uint lastID;
@@ -306,7 +310,13 @@ private:
       MODELVIEWMAT_UNIFORM = 1,
       MODELVIEWPROJECTIONMAT_UNIFORM = 2,
       NORMALMAT_UNIFORM = 3,
-      CAMERA_UNIFORM = 4 
+      CAMERA_UNIFORM = 4,
+      TIME_UNIFORM = 5,
+      HEIGHT_UNIFORM = 6,
+      WIDTH_UNIFORM = 7,
+      PARAM1_UNIFORM = 8,
+      PARAM2_UNIFORM = 9,
+      PARAM3_UNIFORM = 10
     };
     
     enum{LIGHTSUBBP = 1}; // Lights Uniform Buffer Binding Pointer

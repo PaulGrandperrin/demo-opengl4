@@ -1,5 +1,5 @@
 #version 430 core
-#define NBLIGHTS 10
+#define NBLIGHTS 2
 precision highp float;
 
 
