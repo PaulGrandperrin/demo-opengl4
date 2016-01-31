@@ -1,14 +1,14 @@
 CXX=clang++
 CXXFLAGS= -O3 -g -ggdb -Wall -Wextra -pedantic -Wno-local-type-template-args -Wno-unused-parameter -Wno-logical-op-parentheses -std=c++11
-LDFLAGS= -lglfw -lGLEW -lGL -lIL -lSOIL
+LDFLAGS= -lglfw -lGL -lGLEW -lIL -lSOIL
 
 CXX = g++
 CXXFLAGS=-Wall -Wextra -Wno-unused-parameter -O0 -g -ggdb -p -pg -std=c++11 -pedantic -Wstrict-aliasing -DDEBUG
-LDFLAGS= -Wl,--no-as-needed -lglfw -lGLEW -lIL -lSOIL
+LDFLAGS= -Wl,--no-as-needed -lglfw -lGL -lGLEW -lIL -lSOIL
 
 CXX = g++
 CXXFLAGS=-Wall -Wextra -Wno-unused-parameter -O3 -std=c++11 -pedantic -Wstrict-aliasing
-LDFLAGS= -Wl,--no-as-needed -lglfw -lGLEW -lIL -lSOIL
+LDFLAGS= -Wl,--no-as-needed -lglfw -lGL -lGLEW -lIL -lSOIL
 
 all: demo
 
